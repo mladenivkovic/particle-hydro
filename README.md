@@ -9,7 +9,9 @@ A program to learn about and play with particle based hydrodynamics solvers.
 You can pick between:
 
 - Smooth Particle Hydrodynamics (SPH) Flavours:
-	- None
+	- Density-Entropy SPH
+    - Meshless methods of Vila
+    - Meshless method of Ivanova 2014
 - Riemann solvers (for Meshless Methods):
 	- Exact	(exact iterative solver)
 	- HLLC	(Harten, Lax, van Leer approximate solver with contact wave)
