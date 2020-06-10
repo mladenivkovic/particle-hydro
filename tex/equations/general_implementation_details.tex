@@ -1,0 +1,377 @@
+\newpage
+
+
+
+%======================================================
+\section{General Implementation Details}
+%======================================================
+
+\todo{needs updating}
+
+This section gives an overview on how this code works.
+To read about how to use the code, see the \texttt{/README.md} file.
+
+
+
+\subsection{How the program works}
+
+\begin{itemize}
+	\item 	All the source files are in the \texttt{/program/src/} directory.
+	
+	\item 	The main program files are \texttt{/program/src/main.c} if you want to use the code as a hydro/hyperbolic conservation law solver, or \texttt{/program/src/main-riemann.c} if you want to use the code as a Riemann solver.
+	
+	\item 	The program starts off by reading in the initial conditions (IC) file and the parameter file, which are both required command line arguments when executing the program.
+			All functions related to reading and writing files are in \texttt{/program/src/io.c}
+	
+	\item 	Then a few checks are done to make sure no contradictory or missing parameters are given, and the grid on which the code will work on is initialized, as well as some global variables like the step number and current in-code time.
+	
+	\item 	There are two global variables used throughout the code:
+	
+		\begin{itemize}
+			\item 	\texttt{ struct params param}: A parameter struct (defined in \texttt{/program/src/params.h}) that stores global parameters that are useful to have everywhere throughout the code (even if it isn't optimal coding practice...)
+					All parameter related functions are in \texttt{/program/src/params.c}.
+			
+			\item 	\texttt{ struct cell* grid} or \texttt{struct cell** grid}, depending on whether you run the code in 1D or 2D, respectively.
+					It's an array of \texttt{struct cell}, defined in \texttt{/program/src/cell.h}, which is meant to store all cell related quantities: primitive states, \texttt{prim}, as  \texttt{struct pstate}, and conserved states, \texttt{cons}, as \texttt{struct cstate}.
+					Furthermore they have \texttt{struct pstate pflux} and \texttt{struct cstate cflux} to store fluxes of primitive and conserved variables.
+					All cell/grid related functions are written in \texttt{/program/src/cell.c}.	
+		\end{itemize}
+	
+	\item 	If the code is used as a hydro/conservation law solver: 
+	
+		\begin{itemize}
+			\item 	The main loop starts now:
+			\item 	Advance the solver for a time step.
+			\item 	Write output data if you need to (when to dump output is specified in the parameter file).
+					All functions related to reading and writing files are in \texttt{/program/src/io.c}
+			\item 	Write a message to the screen after the time step is done. 
+					This includes the current step number, in-code time, the ratio of initial mass to the current mass on the entire grid, and the wall-clock time that the step needed to finish.
+		\end{itemize}
+
+	\item 	If the code is used as a Riemann solver: 
+	
+		\begin{itemize}
+			\item 	Only do a loop over all cells and solve the Riemann problem given by the IC at the cell's position at given time $t$.
+					Some functions for the Riemann problem that are used by all implemented Riemann solvers are given in \texttt{/program/src/riemann.h} and \texttt{/program/src/riemann.c}.
+					When a specific Riemann solver is set, \texttt{/program/src/riemann.h} includes that file from the directory \texttt{/program/src/riemann/}. 
+					The file names in that directory should be obvious.
+			
+			\item 	Write output data. 
+					All functions related to reading and writing files are in \texttt{/program/src/io.c}
+		\end{itemize}
+\end{itemize}
+
+
+
+
+
+
+
+
+
+
+
+
+
+%===============================================================================
+\subsection{Contents of specific files and directories in \texttt{/program/src/}}
+%===============================================================================
+
+\begin{itemize}
+	\item 	\texttt{/program/src/cell.c}, \texttt{/program/src/cell.h}: 
+	
+			All cell/grid related functions.
+			The grid is used as \texttt{ struct cell* grid} or \texttt{struct cell** grid}, depending on whether you run the code in 1D or 2D, respectively.
+
+			It's an array of \texttt{struct cell}, defined in \texttt{/program/src/cell.h}, which is meant to store all cell related quantities: primitive states, \texttt{prim}, as  \texttt{struct pstate}, and conserved states, \texttt{cons}, as \texttt{struct cstate}.
+			Furthermore they have \texttt{struct pstate pflux} and \texttt{struct cstate cflux} to store fluxes of primitive and conserved variables.
+			All cell/grid related functions are written in \texttt{/program/src/cell.c}.	
+			
+
+	\item 	\texttt{/program/src/defines.h}:
+	
+			Contains all macro definitions, like iteration tolerance, the box size, the adiabatic coefficient $\gamma$ etc, as well as some physical constants (mostly related to $\gamma$).
+			
+	\item 	\texttt{/program/src/io.h}, \texttt{/program/src/io.c}:
+	
+			All input/output related functions, i.e. anything related to reading and writing files.
+			
+	\item 	\texttt{/program/src/limiter.h}, \texttt{/program/src/limiter.c}:
+	
+			Slope and flux limiter related functions (section \ref{chap:limiters}) that are used regardless of the choice of the limiter.
+			For a specific choice of slope limiter, \texttt{/program/src/limiter.h} includes a specific file from \texttt{/program/src/limiter/}.
+			The file name in \texttt{/program/src/limiter/} should be obvious.
+			
+	\item 	\texttt{/program/src/limiter/}:
+	
+			Slope limiter functions (section \ref{chap:limiters}) for specific limiters.
+			They will be included by \texttt{/program/src/limiter.h} during compile time by setting the corresponding variable name in the \texttt{/program/bin/Makefile}.
+			
+			Essentially, these files only contain the actual computation of $\phi(r)$ and $\xi(r)$.
+			
+			
+	\item 	\texttt{/program/src/main.c}:
+			
+			The main function of the program when the program is utilized as a hydro/hyperbolic conservation law solver.
+			
+	\item 	\texttt{/program/src/main-riemann.c}:
+			
+			The main function of the program when the program is utilized as a Riemann solver.
+			
+			
+	\item 	\texttt{/program/src/riemann.h}, \texttt{/program/src/riemann.c}:
+	
+			Riemann solver related functions (section \ref{chap:riemann}) that are used regardless of the choice of the Riemann solver.
+			For a specific choice of Riemann solver, \texttt{/program/src/riemann.h} includes a specific file from \texttt{/program/src/riemann/}.
+			The file name in \texttt{program/src/riemann/} should be obvious.
+			
+	\item 	\texttt{/program/src/riemann/}:
+	
+			Riemann solver functions (section \ref{chap:riemann}) for specific Riemann solvers.
+			They will be included by \texttt{/program/src/riemann.h} during compile time by setting the corresponding variable name in the \texttt{/program/bin/Makefile}.
+			
+			Essentially, these files contain only the specific function to get the star state pressure and contact wave velocity.
+			The only exception is the HLLC solver, which works a bit differently than the other implemented solvers.
+			There, essentially everything needs to be done in a special way, so the solver contains its own routines, with a ``\texttt{HLLC}'' added to the function names.
+
+	\item 	\texttt{/program/src/solver.h}, \texttt{/program/src/solver.c}:
+	
+			Hydro and advection solver related functions (section \ref{chap:advection}, \ref{chap:hydro}) that are used regardless of the choice of the hydro solver.
+			For a specific choice of solver, \texttt{/program/src/solver.h} includes a specific file from \texttt{/program/src/solver/}.
+			The file name in \texttt{/program/src/solver/} should be obvious.
+			For implementation details of each solver, look up the implementation details in their respective section \ref{chap:advection}, \ref{chap:hydro}.
+			
+	\item 	\texttt{/program/src/solver/}:
+	
+			Hydro and advection solver functions (section \ref{chap:advection}, \ref{chap:hydro}) for specific  solvers.
+			They will be included by \texttt{/program/src/solver.h} during compile time by setting the corresponding variable name in the \texttt{/program/bin/Makefile}.
+			For implementation details of each solver, look up the implementation details in their respective section \ref{chap:advection}, \ref{chap:hydro}.
+
+	\item 	\texttt{/program/src/utils.h}, \texttt{/program/src/utils.c}:
+	
+			Miscellaneous small utilities that are irrelevant for the actual hydro or hyperbolic conservation law solving, like printing a banner every time the code starts, standardized functions to print outputs to screen or throw errors, etc.
+
+\end{itemize}
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%===============================================================================
+\subsection{Compilation Flags}
+%===============================================================================
+
+%===============================================================================
+\subsubsection{Intended to be set by the user}
+%===============================================================================
+
+\begin{center}
+\begin{tabular}{l p{4cm} p{8cm}}
+\textbf{variable}		&	\textbf{options}			& 	\textbf{description}	\\
+\hline
+
+\texttt{EXEC} 			&	\texttt{some_name} 			&	resulting executable name. Can be set as you wish. \\
+\hline
+
+
+\texttt{NDIM}			&	\texttt{1}					& 	Number of dimensions 	\\
+						&	\texttt{2}					&	\\
+\hline
+
+\texttt{SOLVER}			&	\multicolumn{2}{p{13cm}}{\textit{%
+							Which conservation law solver to use. Two classes are implemented: 
+							To solve advection (section \ref{chap:advection}) and Euler equations 
+							(section \ref{chap:hydro}).}} \\
+						&	\texttt{ADVECTION_PWCONST}	&	Piecewise constant advection (section \ref{chap:advection-pwconst}) \\
+						&	\texttt{ADVECTION_PWLIN}	&	Piecewise linear advection (section \ref{chap:advection-pwlin}) \\
+						&	\texttt{ADVECTION_WAF}		&	Weighted Average Flux advection (section \ref{chap:advection-waf}) \\
+						&	\texttt{GODUNOV}			&	Godunov Upwind first order hydrodynamics (section \ref{chap:godunov}) \\
+						&	\texttt{WAF}				&	Weighted Average Flux hydrodynamics (section \ref{chap:hydro-WAF}) \\
+						&	\texttt{MUSCL}				&	MUSCL-Hancock hydrodynamics (section \ref{chap:MUSCL-hancock}) \\
+\hline
+
+\texttt{RIEMANN}		&	\multicolumn{2}{p{13cm}}{\textit{%
+							Riemann solvers (section \ref{chap:riemann}) are used in combination with hydro solvers 
+							for the Euler equations. Advection solvers don't need them.}}\\
+						&	\texttt{EXACT}				&	Exact Riemann solver (section \ref{chap:riemann-exact}) \\
+						&	\texttt{HLLC}				&	HLLC (section \ref{chap:riemann-hllc}) \\
+						&	\texttt{TRRS}				&	Two Rarefaction Riemann solver (section \ref{chap:riemann-trrs}) \\
+						&	\texttt{TSRS}				&	Two Shock Riemann solver (section \ref{chap:riemann-tsrs}) \\
+\hline
+
+\texttt{LIMITER}		&	\multicolumn{2}{p{13cm}}{\textit{%
+							Flux/slope limiters (section \ref{chap:limiters})  are needed for all methods 
+							higher than first order to avoid unphysical oscillations that arise from the 
+							numerical schemes.}}\\
+						&	\texttt{MC}					&	Monotoniced Center Difference limiter (section \ref{chap:implemented_limiters}) \\
+						&	\texttt{MINMOD}				&	Minmod limiter (section \ref{chap:implemented_limiters}) \\
+						&	\texttt{SUPERBEE}			&	Superbee limiter (section \ref{chap:implemented_limiters}) \\
+						&	\texttt{VANLEER}			&	Van Leer limiter (section \ref{chap:implemented_limiters}) \\
+\hline
+
+
+\texttt{SOURCES}		&	\multicolumn{2}{p{13cm}}{\textit{%
+							Source Terms (section \ref{chap:sources}) from external forces. Can be left undefined.}} \\
+						&	\texttt{NONE}				&	No source terms  \\
+						&	\texttt{CONSTANT}			&	Constant source terms (section \ref{chap:implemented-sources}) \\
+						&	\texttt{RADIAL}				&	Radial constant source terms (section \ref{chap:implemented-sources}) \\
+\hline
+
+\texttt{INTEGRATOR}		&	\multicolumn{2}{p{13cm}}{\textit{%
+							Which integrator to use to integrate the source terms (section \ref{chap:sources}) from external forces in time. Can (and should) be left undefined if sources are \texttt{NONE} or undefined.}} \\
+						&	\texttt{NONE}				&	No source terms  \\
+						&	\texttt{RK2}				&	Runge-Kutta 2 integrator (section \ref{chap:integrators}) \\
+						&	\texttt{RK4}				&	Runge-Kutta 4 integrator (section \ref{chap:integrators}) \\
+\hline
+
+\end{tabular}
+\end{center}
+
+
+
+
+
+
+
+
+
+
+
+%===============================================================================
+\subsubsection{Behind the Scenes}
+%===============================================================================
+
+
+It's simpler to pass on an integer as a definition \texttt{-Dsomedefinition} than any kind of string, in particular if you want to do comparisons like \verb|#if SOLVER == GODUNOV| inside the code.
+Hence all choices are being translated to integers behind the scenes.
+Here is the list of translations:
+
+
+
+
+\begin{center}
+\begin{tabular}{l l l}
+
+\textbf{variable}		&	\textbf{option}				&	\textbf{integer} \\
+\hline
+\texttt{SOLVER}			&	\texttt{ADVECTION_PWCONST}	&	11 \\
+						&	\texttt{ADVECTION_PWLIN}	&	12 \\
+						&	\texttt{ADVECTION_WAF}		&	13 \\
+						&	\texttt{GODUNOV}			&	21 \\
+						&	\texttt{WAF}				&	22 \\
+						&	\texttt{MUSCL}				&	23 \\
+\hline
+
+\texttt{RIEMANN}		&	\texttt{NONE}				&	0 \\
+						&	\texttt{EXACT}				&	1 \\
+						&	\texttt{HLLC}				&	2 \\
+						&	\texttt{TRRS}				&	3 \\
+						&	\texttt{TSRS}				&	4 \\
+
+\hline
+
+\texttt{LIMITER}		&	\texttt{NONE}				&	0 \\
+						&	\texttt{MINMOD}				&	1 \\
+						&	\texttt{SUPERBEE}			&	2 \\
+						&	\texttt{VANLEER}			&	3 \\
+						&	\texttt{MC}					&	4 \\
+\hline
+
+
+\texttt{SOURCES}		&	\texttt{NONE}				&	0 \\
+						&	\texttt{CONSTANT}			&	1 \\
+						&	\texttt{RADIAL}				&	2 \\
+\hline
+
+\texttt{INTEGRATOR}		&	\texttt{NONE}				&	- \\
+						&	\texttt{RK2}				&	- \\
+						&	\texttt{RK4}				&	- \\
+\hline
+
+\end{tabular}
+\end{center}
+
+
+
+The \texttt{INTEGRATOR} definition requires no checks, it only determines which files will be included and compiled, so no integers are assigned.
+
+
+
+Some other definitions for checks are required.
+These definitions are automatically identified and passed to the compiler, so no additional action from the user's side is required.
+
+\begin{itemize}
+	\item 	If any advection solver is used, the code needs an additional \texttt{-DADVECTION} flag
+	\item 	If any source terms are used, the code needs an additional \texttt{-DWITH_SOURCES} flag
+\end{itemize}
+
+
+
+All these things are handled in the \texttt{/program/bin/processing.mk} file, as well as checks whether all required variables are defined, and if not, default values are set.
+
+The default values are:
+
+\begin{center}
+\begin{tabular}{l l}
+
+\textbf{variable}		&	\textbf{default value}		\\
+\hline
+
+\texttt{SOLVER}			&	\texttt{GODUNOV}			\\
+\texttt{RIEMANN}		&	\texttt{EXACT}				\\
+\texttt{LIMITER}		&	\texttt{NONE}				\\
+\texttt{SOURCES}		&	\texttt{NONE}				\\
+\end{tabular}
+\end{center}
+
+
+
+
+
+
+
+
+
+
+%===============================================================================
+\subsection{Tests}
+%===============================================================================
+
+%===============================================================================
+\subsubsection*{Check whether the code works as intended}
+%===============================================================================
+
+
+A primitive test suite is set up in \texttt{/program/test} and can be run by executing \texttt{/program/test/run.sh}.
+It will compile pretty much every possible combination of solvers, Riemann solvers, limiters, dimensions etc. and run some pre-defined tests.
+When finished correctly, a LaTeX pdf \texttt{/proram/test/test_results.pdf} will be generated, with the generated results being shown right below expected results.
+
+It's not the most exact way of testing the code, but if you break something major, you will notice.
+
+
+
+
+
+
+
+
+%===============================================================================
+\subsubsection*{Code Coverage}
+%===============================================================================
+
+A coverage test is set up in \texttt{/program/coverage}.
+It uses \texttt{gcovr} and compiles and runs pretty much all possible versions of the code.
+Finally, it combines the coverage data from all runs and generates a html  file \texttt{/program/coverage/coverage.html}
+that shows the code coverage.
