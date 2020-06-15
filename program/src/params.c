@@ -29,15 +29,16 @@ void params_init_defaults(){
 
 
   /* simulation related parameters */
+  pars.npart = 100;
   pars.nsteps = 0;
   pars.tmax = 0;
 
-  pars.nx = 100;
   pars.ccfl = 0.9;
   pars.force_dt = 0;
   pars.boundary = 0;
 
-  pars.dx = BOXLEN / pars.nx;
+  pars.nx = pars.npart;
+  pars.dx = BOXLEN / pars.npart;
 
 
   /* output related parameters */
@@ -52,11 +53,8 @@ void params_init_defaults(){
   pars.outputtimes = NULL;
 
 
-  /* IC related parameters */
-  pars.twostate_ic = 0;
-  pars.ndim_ic = -1;
+  /* read in file related parameters */
   strcpy(pars.datafilename, "");
-
   strcpy(pars.paramfilename, "");
 
 
@@ -67,7 +65,6 @@ void params_init_defaults(){
   pars.constant_acceleration = 0;
   pars.constant_acceleration_computed = 0;
   pars.sources_are_read = 0;
-
 }
 
 
@@ -104,10 +101,8 @@ void params_init_derived(){
     if (slash > 0) slash += 1;
 
     char solver[80];
-    char riemann[80];
-    char limiter[80];
 
-    utils_get_macro_strings(solver, riemann, limiter);
+    utils_get_macro_strings(solver);
 
     /* now copy the exact part that you want into filename string */
     strncpy(pars.outputfilename, pars.datafilename+slash, dot-slash);
@@ -118,31 +113,12 @@ void params_init_derived(){
     strcat(pars.outputfilename, solver);
     strcat(pars.outputfilename, "-");
 
-    /* Add Riemann solver, if present */
-    if(strcmp(riemann, "NONE")){ /* 0 if equal */
-      strcat(pars.outputfilename, riemann);
-      strcat(pars.outputfilename, "-");
-    }
-
-    /* Add Limiter */
-    if(strcmp(limiter, "NONE")){ /* 0 if equal */
-      strcat(pars.outputfilename, limiter);
-    }
-    else {
-      strcat(pars.outputfilename, "NO_LIMITER");
-    }
-    strcat(pars.outputfilename, "-");
-
     /* Add dimension */
     strcat(pars.outputfilename, STR(NDIM));
     strcat(pars.outputfilename, "D");
-
-
-
   }
 
-  /* Compute dx */
-  pars.dx = BOXLEN / pars.nx;
+
 
 
   /* -----------------------------------------------------------------------------------
@@ -180,8 +156,6 @@ void params_init_derived(){
 #if (SOURCE == SRC_CONST) || (SOURCE == SRC_RADIAL)
   pars.constant_acceleration = 1;
 #endif
-
-
 }
 
 
@@ -205,8 +179,6 @@ void params_print_log(){
 
   log_message("tmax:                        %g\n", pars.tmax);
   log_message("nsteps:                      %d\n", pars.nsteps);
-
-  log_message("nx:                          %d\n", pars.nx);
   log_message("C_cfl:                       %g\n", pars.ccfl);
 
   if (pars.force_dt > 0){
@@ -218,16 +190,11 @@ void params_print_log(){
     if (pars.boundary == 0){
       printf("periodic\n");
     } else if (pars.boundary == 1){
-      printf("reflective\n");
-    } else if (pars.boundary == 2){
       printf("transmissive\n");
     }
   }
 
   log_message("IC file:                     %s\n", pars.datafilename);
-  if (pars.twostate_ic){
-  log_message("                             IC file has only two primitive states.\n");
-  }
 
   if (pars.use_toutfile){
     if (pars.dt_out == 0.0){
@@ -288,12 +255,6 @@ void params_check(){
     throw_error("In params_check: I have nx = 0 cells for the sim.");
   }
 
-  if (pars.ndim_ic != NDIM){
-    if (!pars.twostate_ic) {
-      int nd = NDIM;
-      throw_error("You're trying to use an arbitrary IC filetype for ndim=%d, but the code is compiled for ndim=%d", pars.ndim_ic, nd);
-    }
-  }
 
 
 
@@ -310,73 +271,4 @@ void params_check(){
     throw_error("Code is compiled to work without sources, but I read in source related parameters.");
   }
 #endif
-}
-
-
-
-
-
-void params_check_riemann(){
-  /* ----------------------------------------------- */
-  /* Check whether we can work with these parameters */
-  /* When using the program as a riemann solver      */
-  /* ----------------------------------------------- */
-
-  log_extra("Checking whether we have valid parameters");
-
-  if (pars.tmax == 0 ){
-    throw_error("You need to specify tmax so I know at what time to sample the solution.");
-  }
-
-  if (pars.nx == 0) {
-    throw_error("In params_check: I have nx = 0 cells for the sim. You need to tell me how many cells you want.");
-  }
-}
-
-
-
-
-
-void params_generate_riemann_output_filename(){
-  /* ------------------------------------------------- */
-  /* Create a filename for the output for when the code
-   * is employed as a Riemann solver only
-   * ------------------------------------------------- */
-
-  /* do this only if no basename is given */
-  if (strlen(pars.outputfilename)==0) {
-
-    int dot = 0;
-    /* extract filename without suffix */
-    for (int i = strlen(pars.datafilename); i > 0; i--){
-      if (pars.datafilename[i] == '.'){
-        dot = i;
-        break;
-      }
-    }
-
-    int slash = 0;
-    /* remove possible directories paths from filename*/
-    for (int i = 0; i < (int) strlen(pars.datafilename); i++){
-      if (pars.datafilename[i] == '/'){
-        slash = i;
-      }
-    }
-
-    if (dot==0) dot = strlen(pars.datafilename);
-    if (slash > 0) slash += 1;
-
-    char solver[80];
-    char riemann[80];
-    char limiter[80];
-
-    utils_get_macro_strings(solver, riemann, limiter);
-
-    /* now copy the exact part that you want into filename string */
-    strcpy(pars.outputfilename, "");
-    strncpy(pars.outputfilename, pars.datafilename+slash, dot-slash);
-    pars.outputfilename[dot-slash] = '\0';
-    strcat(pars.outputfilename, "-RIEMANN-");
-    strcat(pars.outputfilename, riemann);
-  }
 }

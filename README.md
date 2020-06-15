@@ -158,8 +158,6 @@ Accepted names, their datatypes and default values are:
 
 | name              |  default value    | type  | description                                                                   |
 |-------------------|-------------------|-------|-------------------------------------------------------------------------------|
-| `nx`              | = 100             | `int` | Number of cells to use if you're running with a two-state type IC file. Otherwise, it needs to be specified in the initial conditions.  If you're not using a two-state IC, the value will be overwritten by the value given in the IC file.  |
-|                   |                   |       |                                                                               |
 | `ccfl`            | = 0.9             |`float`| courant factor; `dt = ccfl * dx / vmax`                                       |
 |                   |                   |       |                                                                               |
 | `nsteps`          | = 1               | `int` | Up to how many steps to do. If = 0, run until `t >= tmax`                     |
@@ -168,7 +166,7 @@ Accepted names, their datatypes and default values are:
 |                   |                   |       |                                                                               |
 | `force_dt`        | = 0               |`float`| force a time step size. If a smaller time step is required, the sim will stop.|
 |                   |                   |       |                                                                               |
-| `boundary`        | = 0               | `int` | Boundary conditions  0: periodic. 1: reflective. 2: transmissive. This sets the boundary conditions for all walls. |
+| `boundary`        | = 0               | `int` | Boundary conditions  0: periodic. 1: transmissive. This sets the boundary conditions for all walls. |
 |                   |                   |       |                                                                               |
 
 
@@ -207,49 +205,19 @@ The source term related options will only take effect if the code has been compi
 Initial Conditions
 ------------------------------------
 
-- The program reads two types of IC files.
-- In any case, they're expected to be formatted text.
-- In both IC file types, lines starting with `//` or `/*` will be recognized as comments and skipped. Empty lines are skipped as well.
+- The program reads formatted text Initial Conditions (ICs).
+- It is assumed that the particle quantities are the fluid quantities at the initial time.
+- Lines starting with `//` or `/*` will be recognized as comments and skipped. Empty lines are skipped as well.
 - Some example python scripts that generate initial conditions are given in `./py/IC`
 
 
-### Two-state ICs
 
-You can use a Riemann-problem two-state initial condition file as follows:
-
-```
-filetype = two-state
-rho_L   = <float>
-u_L     = <float>
-p_L     = <float>
-rho_R   = <float>
-u_R     = <float>
-p_R     = <float>
-```
-
-The line 
-```
-filetype = two-state
-```
-
-**must** be the first non-comment non-empty line. The order of the other parameters is 
-arbitrary, but they must be named `rho_L`, `u_L`, `p_L`, `rho_R`, `u_R`, `p_R`.
-
-The discontinuity between the changes will be in the middle along the x axis. The coordinates will be printed to screen.
-
-If the code is supposed to run in 2D, then the split will be along the x axis as well, and just copied along the y axis. Fluid velocity in y direction will be set to zero, `u_L` and `u_R` will be set as `u_x`.
-
-
-
-### Arbitrary ICs
-
-You can provide an individual value for density, velocity, and pressure for each cell. The IC file format is:
+You can provide an individual value for mass, position, velocity, and pressure for each cell. The IC file format is:
 
 The lines
 ```
-filetype = arbitrary
-nx = <int>
 ndim = <int>
+npart = <int>
 ```
 
 **must** be the first non-comment non-empty lines, in that order.
@@ -257,18 +225,17 @@ ndim = <int>
 **FOR 1D:**
 
 ```
-filetype = arbitrary
-nx = <integer, number of cells in any dimension>
 ndim = 1
-<density in cell 0> <velocity in cell 0> <pressure in cell 0>
-<density in cell 1> <velocity in cell 1> <pressure in cell 1>
-                            .
-                            .
-                            .
-<density in cell nx-1> <velocity cell nx-1> <pressure in cell nx-1>
+npart = <integer, number of particles in total>
+<mass of particle 0> <position of particle 0> <velocity of particle 0> <pressure of particle 0>
+<mass of particle 1> <position of particle 1> <velocity of particle 1> <pressure of particle 1>
+                                    .
+                                    .
+                                    .
+<mass of particle npart-1> <position of particle npart-1> <velocity of particle npart-1> <pressure of particle npart-1>
 ```
 
-`cell 0` is the leftmost cell. All values for density, velocity, and pressure must be floats.
+All values for mass, positions, velocity, and pressure must be floats.
 You can put comments and empy lines wherever you feel like it.
 
 
@@ -279,33 +246,18 @@ You can put comments and empy lines wherever you feel like it.
 **FOR 2D:**
 
 ```
-filetype = arbitrary
-nx = <integer, number of cells in any dimension>
 ndim = 2
-<density in cell (0, 0)> <x velocity in cell (0, 0)> <y velocity in cell (0, 0)> <pressure in cell (0, 0)>
-<density in cell (1, 0)> <x velocity in cell (1, 0)> <y velocity in cell (1, 0)> <pressure in cell (1, 0)>
-                                     .
-                                     .
-                                     .
-<density in cell (nx-1, 0)> <x velocity cell (nx-1, 0)> <y velocity in cell (nx-1, 0)> <pressure in cell (nx-1, 0)>
-<density in cell (0, 1)> <x velocity in cell (0, 1)> <y velocity in cell (0, 1)> <pressure in cell (0, 1)>
-<density in cell (1, 1)> <x velocity in cell (1, 1)> <y velocity in cell (1, 1)> <pressure in cell (1, 1)>
-                                     .
-                                     .
-                                     .
-<density in cell (nx-1, 1)> <x velocity cell (nx-1, 1)> <y velocity in cell (nx-1, 1)> <pressure in cell (nx-1, nx-1)>
-                                     .
-                                     .
-                                     .
-<density in cell (0, nx-1)> <x velocity in cell (0, nx-1)> <y velocity in cell (0, nx-1)> <pressure in cell (0, nx-1)>
-<density in cell (1, nx-1)> <x velocity in cell (1, nx-1)> <y velocity in cell (1, nx-1)> <pressure in cell (1, nx-1)>
-                                     .
-                                     .
-                                     .
-<density in cell (nx-1, nx-1)> <x velocity cell (nx-1, nx-1)> <y velocity in cell (nx-1, nx-1)> <pressure in cell (nx-1, nx-1)>
+npart = <integer, number of cells in any dimension>
+<mass of particle 0> <x position of particle 0> <y position of particle 0> <x velocity of particle 0> <y velocity of particle 0> <pressure of particle 0>
+<mass of particle 1> <x position of particle 1> <y position of particle 1> <x velocity of particle 1> <y velocity of particle 1> <pressure of particle 1>
+                                    .
+                                    .
+                                    .
+<mass of particle npart-1> <x position of particle npart-1> <y position of particle npart-1> <x velocity of particle npart-1> <y velocity of particle npart-1> <pressure of particle npart-1>
+
 ```
 
-`cell (0, 0)` is the lower left corner of the box. First index is x direction, second is y. All values for density, velocity, and pressure must be floats.
+All values for mass, position, velocity, and pressure must be floats.
 You can put comments and empy lines wherever you feel like it.
 
 
@@ -323,11 +275,11 @@ Output
 
 If no `basename` is given in the parameter file, the output file name will be generated as follows:
 
-`<ICfile-without-suffix>-<SOLVER>-<RIEMANN-SOLVER>-<LIMITER>-<NDIM>D-<snapshot nr>.out`
+`<ICfile-without-suffix>-<SOLVER>-<NDIM>D-<snapshot nr>.out`
 
 e.g.
 
-`run-ADVECTION-NO_LIMITER-2D-0001.out`
+`run-SPH_DS-2D-0001.out`
 
 The output files are written in formatted text, and their content should be self-explainatory:
 

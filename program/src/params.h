@@ -17,14 +17,15 @@ typedef struct {
   int nstep_log;                        /* on how many steps to write log message of time step */
 
   /* simulation related parameters */
+  int npart;                            /* number of particls */
   int nsteps;                           /* how many steps to take */
   float tmax;                           /* at what time to end */
 
-  int nx;                               /* number of grid points */
   float ccfl;                           /* CFL coefficient */
   float force_dt;                       /* force a time step size (except if you need to write an output) */
   int boundary;                         /* boundary condition for all walls.*/
 
+  int nx;                               /* number of grid points */
   float dx;                             /* cell size */
   
   /* output related parameters */
@@ -39,9 +40,7 @@ typedef struct {
   float *outputtimes;                   /* array of output times given in the output file */
 
 
-  /* IC related parameters */
-  int twostate_ic;                      /* whether IC are left/right state only */
-  int ndim_ic;                          /* dimension of IC file */
+  /* read in file parameters */
   char datafilename[MAX_FNAME_SIZE];    /* IC data filename */
 
   char paramfilename[MAX_FNAME_SIZE];   /* parameter filename */
@@ -67,11 +66,5 @@ void params_init_defaults();
 void params_init_derived();
 void params_print_log();
 void params_check();
-
-/* Functions for when the code is used as a Riemann solver only */
-
-void params_check_riemann();
-void params_generate_riemann_output_filename();
-
 
 #endif

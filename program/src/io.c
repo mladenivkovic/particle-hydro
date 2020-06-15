@@ -13,6 +13,7 @@
 #include "gas.h" /* pstates */
 #include "io.h"
 #include "params.h"
+#include "particles.h"
 #include "utils.h"
 
 
@@ -26,6 +27,7 @@ extern cell **grid;
 
 
 extern params pars;
+extern part* particles;
 
 
 
@@ -47,25 +49,34 @@ void io_read_cmdlineargs(int argc, char* argv[]){
 
 
 
-void io_read_ic_type(int* skip_lines){
+
+void io_read_ic(){
   /*--------------------------------------------------------
-   * Start reading IC file, find what IC type we have       
+   * Read in initial conditions file, store read states.    
    *--------------------------------------------------------*/
+
+  log_extra("Reading in IC");
 
   /* check whether file exists first */
   io_check_file_exists(pars.datafilename);
 
+  char varname[MAX_LINE_SIZE];
+  char varvalue[MAX_LINE_SIZE];
+  char tempbuff[MAX_LINE_SIZE];
+
+
   /* open file */
   FILE *dat = fopen(pars.datafilename, "r");
 
-  char varname[MAX_LINE_SIZE] ;
-  char varvalue[MAX_LINE_SIZE] ;
-  char tempbuff[MAX_LINE_SIZE] ;
 
-  *skip_lines = 0;
+
+  /* First, we need to read in ndim and npart */
+
+  char npart_read = 0;     /* keep track of what we have read in already */
+  char ndim_read = 0;
+  int ndim_ic = 0;
 
   while (fgets(tempbuff, MAX_LINE_SIZE, dat)){
-    *skip_lines += 1;
   
     if (line_is_comment(tempbuff)) continue;
     remove_trailing_comments(tempbuff);
@@ -76,277 +87,94 @@ void io_read_ic_type(int* skip_lines){
     remove_whitespace(varvalue);
 
 
-    if (strcmp(varname, "filetype") == 0) {
-      if (strcmp(varvalue, "two-state") == 0){
-        pars.twostate_ic = 1;
-      }
-      else if (strcmp(varvalue, "arbitrary") == 0){
-        pars.twostate_ic = 0;
-      }
-      else {
-        throw_error("while reading IC file type: I don't recognize file type \"%s\"\n", varvalue);
-      }
-      break;
-    } 
-    else{
+    if (strcmp(varname, "ndim") == 0) {
+      ndim_ic = atoi(varvalue);
+      ndim_read = 1;
+    } else if (strcmp(varname, "npart") == 0) {
+      pars.npart = atoi(varvalue);
+      npart_read = 1;
+    } else {
       throw_error("while reading IC file type: Unrecongized line [error loc 1]\n    %s", tempbuff);
     }
+
+    if (npart_read && ndim_read) break;
   }
 
 
-  /* If we have arbitrary IC file type, keep reading nx and ndim */
-  char nx_read = 0;
-  char ndim_read = 0;
-  if (!pars.twostate_ic){
-    while (fgets(tempbuff, MAX_LINE_SIZE, dat)){
-      *skip_lines += 1;
-
-      if (line_is_comment(tempbuff)) continue;
-      remove_trailing_comments(tempbuff);
-      if (line_is_empty(tempbuff)) continue;
-
-      sscanf(tempbuff, "%20s = %56[^\n]\n", varname, varvalue);
-      remove_whitespace(varname);
-      remove_whitespace(varvalue);
+  /* check that NDIM == ndim_ic */
+  if (ndim_ic != NDIM) throw_error("Code was compiled for NDIM = %s, but IC file is for ndim = %d", STR(NDIM), ndim_ic);
 
 
-      if (strcmp(varname, "nx") == 0) {
-        pars.nx = atoi(varvalue);
-        nx_read = 1;
-      } 
-      else if (strcmp(varname, "ndim") == 0){
-        pars.ndim_ic = atoi(varvalue);
-        ndim_read = 1;
-      }
-      else{
-        throw_error("while reading IC file type: Unrecongized line [error loc 2]: \n    \"%s\" \n", tempbuff);
-      }
-      
-      if (nx_read && ndim_read) break;
-
-    }
-  }
-
-  fclose(dat);
-
-  debugmessage("In io_read_ic_type: got skiplines: %d", *skip_lines);
-}
+  /* with npart known, initialize particle array */
+  init_part_array();
 
 
 
 
-void io_read_ic_twostate(int skip){
-  /*--------------------------------------------------------
-   * Read in initial conditions file, store read states.    
-   * This is for the two-state IC file format.
-   * int skip: how many lines in the IC file to skip before
-   * starting to read IC data
-   *--------------------------------------------------------*/
 
-  log_extra("Reading in IC");
-
-  /* states to be read in */
-  pstate left, right; 
-
-  gas_init_pstate(&left);
-  gas_init_pstate(&right);
-
-  /* bools to check we get complete data set */
-  char rhol_set = 0;
-  char ul_set = 0;
-  char pl_set = 0;
-  char rhor_set = 0;
-  char ur_set = 0;
-  char pr_set = 0;
-
-
-  /* check whether file exists first */
-  io_check_file_exists(pars.datafilename);
-
-  /* open file */
-  FILE *dat = fopen(pars.datafilename, "r");
-
-  char varname[MAX_LINE_SIZE] ;
-  char varvalue[MAX_LINE_SIZE] ;
-  char tempbuff[MAX_LINE_SIZE] ;
-
+  /* Now read in the particle values */
   int i = 0;
+
   while(fgets(tempbuff, MAX_LINE_SIZE, dat)){
-    i += 1;
-    /* debugmessage("i=%d, skip=%d, Got line: ||%s", i, skip, tempbuff); */
-    if (i <= skip) continue; /* skip header */
-  
-    if (line_is_comment(tempbuff)) continue;
-    remove_trailing_comments(tempbuff);
-    if (line_is_empty(tempbuff)) continue;
-    if (!check_name_equal_value_present(tempbuff)) continue;
-
-    sscanf(tempbuff, "%20s = %56[^\n]\n", varname, varvalue);
-    remove_whitespace(varname);
-    remove_whitespace(varvalue);
-  
-    if (strcmp(varname,"rho_L") == 0) {
-      left.rho = atof(varvalue);
-      rhol_set = 1;
-    } else if (strcmp(varname, "u_L") == 0){
-      left.u[0] = atof(varvalue);
-      ul_set = 1;
-    } else if (strcmp(varname, "p_L") == 0){
-      left.p = atof(varvalue);
-      pl_set = 1;
-    } else if (strcmp(varname, "rho_R") == 0) {
-      right.rho = atof(varvalue);
-      rhor_set = 1;
-    } else if (strcmp(varname, "u_R") == 0){
-      right.u[0]= atof(varvalue);
-      ur_set = 1;
-    } else if (strcmp(varname, "p_R") == 0){
-      right.p = atof(varvalue);
-      pr_set = 1;
-    } else{
-      log_message("ATTENTION: Unrecongized data : \"%s\" | \"%s\"\n", varname, varvalue);
-    }
-  }
-
-  fclose(dat);
-
-
-  if (!rhol_set) throw_error("rho left is not given in IC file");
-  if (!rhor_set) throw_error("rho right is not given in IC file");
-  if (!ul_set) throw_error("u left is not given in IC file");
-  if (!ur_set) throw_error("u right is not given in IC file");
-  if (!pl_set) throw_error("u left is not given in IC file");
-  if (!pr_set) throw_error("u right is not given in IC file");
-
-
-  /* Now write the data in the actual grid */
-
-#if NDIM == 1
-  for (int i = 0; i < pars.nx/2; i++){
-    grid[i].prim.rho = left.rho;
-    grid[i].prim.u[0] = left.u[0];
-    grid[i].prim.p = left.p;
-  }
-  for (int i = pars.nx/2; i < pars.nx; i++){
-    grid[i].prim.rho = right.rho;
-    grid[i].prim.u[0] = right.u[0];
-    grid[i].prim.p = right.p;
-  }
-
-#elif NDIM == 2
-  
-  for (int j = 0; j < pars.nx; j++){
-
-    for (int i = 0; i < pars.nx/2; i++){
-      grid[i][j].prim.rho = left.rho;
-      grid[i][j].prim.u[0] = left.u[0];
-      grid[i][j].prim.u[1] = 0;
-      grid[i][j].prim.p = left.p;
-    }
-    for (int i = pars.nx/2; i < pars.nx; i++){
-      grid[i][j].prim.rho = right.rho;
-      grid[i][j].prim.u[0] = right.u[0];
-      grid[i][j].prim.u[1] = 0;
-      grid[i][j].prim.p = right.p;
-    }
-
-  }
-
-#endif
-
-  log_message("The initial discontinuity is at x = %8.5lf\n", (pars.nx/2)*pars.dx);
-}
-
-
-
-
-void io_read_ic_arbitrary(int skip){
-  /*--------------------------------------------------------
-   * Read in initial conditions file, store read states.    
-   * This is for the arbitrary IC file format.
-   * int skip: how many lines in the IC file to skip before
-   * starting to read IC data
-   *--------------------------------------------------------*/
-
-  log_extra("Reading in IC");
-
-  /* check whether file exists first */
-  io_check_file_exists(pars.datafilename);
-
-  /* open file */
-  FILE *dat = fopen(pars.datafilename, "r");
-
-  char tempbuff[MAX_LINE_SIZE] ;
-
-  int i = 0;
-#if NDIM > 1
-  int j = 0;
-#endif
-  int sc = 0;
-  int counter = 0;
-  while(fgets(tempbuff, MAX_LINE_SIZE, dat)){
-    sc += 1;
-    if (sc <= skip) continue; /* skip header */
   
     if (line_is_comment(tempbuff)) continue;
     remove_trailing_comments(tempbuff);
     if (line_is_empty(tempbuff)) continue;
 
+    printf("Working with i=%d", i);
+
 #if NDIM == 1
-    float rho, u, p;
-    check_number_of_columns_IC(tempbuff, 3);
-    sscanf(tempbuff, "%f %f %f\n", &rho, &u, &p);
-
-    grid[i].prim.rho = rho;
-    grid[i].prim.u[0] = u;
-    grid[i].prim.u[1] = 0;
-    grid[i].prim.p = p;
-
-    i += 1;
-
-#elif NDIM == 2
-    float rho, ux, uy, p;
+    float m, x, u, p;
     check_number_of_columns_IC(tempbuff, 4);
-    sscanf(tempbuff, "%f %f %f %f\n", &rho, &ux, &uy, &p);
+    sscanf(tempbuff, "%f %f %f %f\n", &m, &x, %u, &p);
 
-    grid[i][j].prim.rho = rho;
-    grid[i][j].prim.u[0] = ux;
-    grid[i][j].prim.u[1] = uy;
-    grid[i][j].prim.p = p;
+    particles[i].m = m;
+    particles[i].x[0] = x;
+    particles[i].x[1] = 0.;
+    particles[i].v[0] = u;
+    particles[i].v[1] = 0.;
+
+    particles[i].prim.u[0] = u;
+    particles[i].prim.u[1] = 0.;
+    particles[i].prim.p = p;
 
     i += 1;
-    if (i == pars.nx+0){
-      i = 0;
-      j += 1;
-    }
 
+#elif NDIM == 2
+    float m, x, y, u, v, p;
+    check_number_of_columns_IC(tempbuff, 6);
+    sscanf(tempbuff, "%f %f %f %f %f %f\n", &m, &x, &y, &u, &v, &p);
+
+    printf("x: %f y: %f\n", x, y);
+
+    particles[i].m = m;
+    particles[i].x[0] = x;
+    particles[i].x[1] = y;
+    particles[i].v[0] = u;
+    particles[i].v[1] = v;
+
+    particles[i].prim.u[0] = u;
+    particles[i].prim.u[1] = v;
+    particles[i].prim.p = p;
+
+    i += 1;
 #endif
-    counter += 1;
 
 
  
-  /* safety measure */
-#if NDIM == 1
-    if (counter == pars.nx) break;
-#elif NDIM == 2
-    if (counter == pars.nx * pars.nx) break;
-#endif
+    /* safety measure */
+    if (i == pars.npart) {
+    printf("breaking\n");
+    break;
+    }
   }
 
 
   /* another safety mesure */
-#if NDIM == 1
-  if (counter != pars.nx){
-    throw_error("In io_read_ic_arbitrary:I didn't get the proper number of IC cell data.\n"
-                "Expected nx = %d, got %d", pars.nx, counter);
-  }
-#elif NDIM == 2
-  if (counter != pars.nx * pars.nx){
-    throw_error("In io_read_ic_arbitrary: I didn't get the proper number of IC cell data.\n"
-                "Expected nx^2 = %d, got %d", pars.nx * pars.nx, counter);
-  }
-#endif
-  else {
+  if (i != pars.npart){
+    throw_error("In io_read_ic: I didn't get the proper number of IC particle data.\n"
+                "Expected nx = %d, got %d", pars.npart, i);
+  } else {
     while(fgets(tempbuff, MAX_LINE_SIZE, dat)) {
       if (line_is_comment(tempbuff)) continue;
       remove_trailing_comments(tempbuff);
@@ -354,7 +182,7 @@ void io_read_ic_arbitrary(int skip){
 
       /* if you arrived at this point, you have something that is not a comment nor empty line
        * even though we have all the data that we need */
-      throw_error("In io_read_ic_arbitrary: I read enough data according to given nx, but there is still more stuff in the IC file.\n"
+      throw_error("In io_read_ic: I read enough data according to given npart, but there is still more stuff in the IC file.\n"
                   "The line I read was: %s", tempbuff);
     }
   } 
@@ -400,8 +228,6 @@ void io_read_paramfile(){
       pars.nsteps     = atoi(varvalue);
     } else if (strcmp(varname, "tmax") == 0){
       pars.tmax       = atof(varvalue);
-    } else if (strcmp(varname, "nx") == 0){
-      pars.nx         = atoi(varvalue);
     } else if (strcmp(varname, "ccfl") == 0){
       pars.ccfl       = atof(varvalue);
     } else if (strcmp(varname, "force_dt") == 0){
@@ -535,27 +361,27 @@ void io_write_output(int *outstep, int step,  float t){
 
   FILE *outfilep = fopen(filename, "w");
   fprintf(outfilep, "# ndim = %2d\n", NDIM);
-  fprintf(outfilep, "# nx = %10d\n", pars.nx);
+  fprintf(outfilep, "# npart = %10d\n", pars.npart);
   fprintf(outfilep, "# t = %12.6lf\n", t);
   fprintf(outfilep, "# nsteps = %12d\n", step);
 
 #if NDIM == 1
-  fprintf(outfilep, "# %12s %12s %12s %12s\n", "x", "rho", "u", "p");
-  for (int i=0; i<pars.nx; i++){
-    cell c = grid[i];
-    pstate s = c.prim;
-    fprintf(outfilep, "%12.6e %12.6e %12.6e %12.6e\n", c.x, s.rho, s.u[0], s.p);
+  fprintf(outfilep, "# %12s %12s %12s %12s %12s %12s\n", 
+      "x", "m", "rho", "u", "p", "h");
+  for (int i=0; i<pars.npart; i++){
+    part p = particles[i];
+    fprintf(outfilep, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n", 
+        p.x[0], p.m, p.prim.rho, p.prim.u[0], p.prim.p, p.h);
   }
 
 #elif NDIM == 2
 
-  fprintf(outfilep, "# %12s %12s %12s %12s %12s %12s\n", "x", "y", "rho", "u_x", "u_y", "p");
-  for (int j = 0; j < pars.nx; j++){
-    for (int i = 0; i < pars.nx; i++){
-      cell c = grid[i][j];
-      pstate s = c.prim;
-      fprintf(outfilep, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n", c.x, c.y, s.rho, s.u[0], s.u[1], s.p);
-    }
+  fprintf(outfilep, "# %12s %12s %12s %12s %12s %12s %12s %12s\n", 
+      "x", "y", "m", "rho", "u_x", "u_y", "p", "h");
+  for (int i = 0; i < pars.npart; i++){
+    part p = particles[i];
+    fprintf(outfilep, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n", 
+        p.x[0], p.x[1], p.m, p.prim.rho, p.prim.u[0], p.prim.u[1], p.prim.p, p.h);
   }
 
 #endif

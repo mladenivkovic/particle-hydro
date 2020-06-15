@@ -18,6 +18,7 @@
 #include "gas.h"
 #include "io.h"
 #include "params.h"
+#include "particles.h"
 #include "solver.h"
 #include "utils.h"
 
@@ -28,10 +29,12 @@
 /* Initialize globals */
 /* ------------------ */
 
-params pars;
+params pars;      /* global parameters */
+part* particles;  /* particle array */
 
+/* particle grid */
 #if NDIM == 1
-cell *grid;
+cell *grid;     
 #elif NDIM == 2
 cell **grid;
 #endif
@@ -52,6 +55,8 @@ int main(int argc, char* argv[]){
   all_start = clock();
 
 
+
+
   /* Unnecessary things first :) */
   print_header();
 
@@ -62,9 +67,9 @@ int main(int argc, char* argv[]){
   io_read_cmdlineargs(argc, argv);
   io_read_paramfile();
 
-  /* check which IC type we have */
-  int skiplines_ic = 0; /* how many lines to skip next time you open the IC file */
-  io_read_ic_type(&skiplines_ic);
+  /* read in the IC file */
+  /* In this function, the particle array is allocated */
+  io_read_ic();
 
   /* read in output times if necessary */
   if (pars.use_toutfile) io_read_toutfile();
@@ -78,21 +83,6 @@ int main(int argc, char* argv[]){
 
 
 
-  /* initialize the grid */
-  cell_init_grid();
-
-  /* read in the full IC file */
-  if (pars.twostate_ic){
-    io_read_ic_twostate(skiplines_ic);
-  } else {
-    io_read_ic_arbitrary(skiplines_ic);
-  }
-
-#ifdef ADVECTION_KEEP_VELOCITY_CONSTANT
-  solver_advection_check_global_velocity();
-#endif
-  /* translate the read-in primitive vars to conservative ones */
-  cell_get_cstates_from_pstates();
 
 
   /* Initialize counters and time */
@@ -103,23 +93,27 @@ int main(int argc, char* argv[]){
 
   int write_output = 0; /* whether the time step was reduced because we need to write an output */
 
-  float mtot_init = cell_get_total_mass(); /* for checks every step */
-
   log_extra("Writing initial output");
   io_write_output(&outcount, step, t);
 
   log_message("\n");
-  log_message("%14s %14s %14s %14s  %14s\n",
-                "step", "time", "dt", "m_now/m_ini", "time step took");
+  log_message("%14s %14s %14s  %14s\n",
+                "step", "time", "dt", "time step took");
+
+
+
 
   /* -------------------- 
    *   Main loop
    * -------------------- */
-  while(1) {
+  while(0) { /* TODO: set to false temporary */
     if (pars.tmax > 0 && t >= pars.tmax) break; 
     if (pars.nsteps>0 && step == pars.nsteps) break;
 
     step_start = clock(); /* timer */
+
+    /* initialize the grid */
+    cell_init_grid();
 
     /* where the actual magic happens */
     /* solver_step(&t, &dt, step,  &write_output); */
@@ -137,9 +131,8 @@ int main(int argc, char* argv[]){
 
     /* announce */
     if (pars.nstep_log == 0 || step % pars.nstep_log == 0) {
-      log_message("%14d %14.6e %14.6e %14.6e %14.3es\n",
-                  step, t, dt, cell_get_total_mass()/mtot_init, 
-                  (float)(step_end - step_start) / CLOCKS_PER_SEC);
+      log_message("%14d %14.6e %14.6e %14.3es\n",
+                  step, t, dt, (float)(step_end - step_start) / CLOCKS_PER_SEC);
     }
   }
 
@@ -155,7 +148,6 @@ int main(int argc, char* argv[]){
   printf("  Final stats:\n");
   printf("\n");
   printf("    Total runtime was       %12.6fs\n", (float)(all_end - all_start)/CLOCKS_PER_SEC);
-  printf("    m_now/m_ini =           %12.6f\n", cell_get_total_mass()/mtot_init);
   printf("    final number of steps = %12d\n", step);
 
   return(0);

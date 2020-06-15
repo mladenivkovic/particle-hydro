@@ -40,10 +40,8 @@ void print_compile_defines(){
 
 
   char solver[80];
-  char riemann[80];
-  char limiter[80];
 
-  utils_get_macro_strings(solver, riemann, limiter);
+  utils_get_macro_strings(solver);
 
   log_message("-----------------------------------------------------------------------------------------\n");
   log_message("\n");
@@ -53,64 +51,26 @@ void print_compile_defines(){
   log_message("Compile time:                "STR(COMPDATE)"\n");
   log_message("Dimensions:                  "STR(NDIM)"\n");
   log_message("Hydro solver:                %s\n", solver);
-  log_message("Riemann solver:              %s\n", riemann);
-  log_message("Limiter:                     %s\n", limiter);
 }
 
 
 
 
 
-void utils_get_macro_strings(char* solver, char* riemann, char* limiter){
-  /* ------------------------------------------------------------------------ 
-   * Get string names for the solver, riemann solver, and limiter in use.
-   * ------------------------------------------------------------------------ */
+void utils_get_macro_strings(char* solver){
+  /* -------------------------------------------- 
+   * Get string names for the solver in use.
+   * -------------------------------------------- */
 
-#if SOLVER == ADVECTION_PWCONST
-  strcpy(solver, "ADVECTION_PWCONST");
-#elif SOLVER == ADVECTION_PWLIN
-  strcpy(solver, "ADVECTION_PWLIN");
-#elif SOLVER == GODUNOV
-  strcpy(solver, "GODUNOV");
-#elif SOLVER == ADVECTION_WAF
-  strcpy(solver, "ADVECTION_WAF");
-#elif SOLVER == WAF
-  strcpy(solver, "WAF");
-#elif SOLVER == MUSCL
-  strcpy(solver, "MUSCL");
-#elif SOLVER == NONE
-  strcpy(solver, "");
+#if SOLVER == SPH_DS
+  strcpy(solver, "SPH_DS");
+#elif SOLVER == MESHLESS
+  strcpy(solver, "MESHLESS");
+#elif SOLVER == MESHLESS_IVANOVA
+  strcpy(solver, "MESHLESS_IVANOVA");
 #endif
 
 
-#if RIEMANN == NONE
-  strcpy(riemann, "NONE");
-#elif RIEMANN == EXACT
-  strcpy(riemann, "EXACT");
-#elif RIEMANN == HLLC
-  strcpy(riemann, "HLLC");
-#elif RIEMANN == HLL
-  strcpy(riemann, "HLL");
-#elif RIEMANN == TRRS
-  strcpy(riemann, "TRRS");
-#elif RIEMANN == TSRS
-  strcpy(riemann, "TSRS");
-#else
-  strcpy(riemann, "unknown");
-#endif
-
-
-#if LIMITER == NONE
-  strcpy(limiter, "NONE");
-#elif LIMITER == MINMOD
-  strcpy(limiter, "MINMOD");
-#elif LIMITER == SUPERBEE
-  strcpy(limiter, "SUPERBEE");
-#elif LIMITER == VANLEER
-  strcpy(limiter, "VAN_LEER");
-#elif LIMITER == MC
-  strcpy(limiter, "MC");
-#endif
 }
 
 

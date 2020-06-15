@@ -10,9 +10,7 @@
 #include "defines.h"
 
 void io_read_cmdlineargs(int argc, char* argv[]);
-void io_read_ic_type(int* skip_lines);
-void io_read_ic_twostate();
-void io_read_ic_arbitrary(int skip);
+void io_read_ic();
 void io_read_paramfile();
 void io_read_toutfile();
 void io_write_output(int *outstep, int step, float t);
