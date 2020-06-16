@@ -33,4 +33,10 @@ void init_part_array(void);
 void init_part(part* p);
 
 
+/* particle STDOUT printing */
+void part_print_all(void);
+void part_print_range(int start, int stop);
+void part_print_properties(part* p);
+void part_print_header(void);
+
 #endif

@@ -290,16 +290,16 @@ The output files are written in formatted text, and their content should be self
 
 ```
 # ndim =  1
-# nx =    <number of cells used>
+# npart =    <number of particles>
 # t =     <current time, float>
 # nsteps =  <current step of the simulation>
-#            x          rho            u            p
-< x value of cell 0 > <density of cell 0> <velocity of cell 0> < pressure of cell 0>
-                            .
-                            .
-                            .
-                            .
-< x value of cell nx-1 > <density of cell nx-1> <velocity of cell nx-1> < pressure of cell nx-1>
+#            x          m           rho            u            p            h
+<x value of particle 0 > <mass of particle 0> <density of particle 0> <velocity of particle 0> < pressure of particle 0> < smoothing length of particle 0>
+                                            .
+                                            .
+                                            .
+                                            .
+<x value of particle npart-1 > <mass of particle npart-1> <density of particle npart-1> <velocity of particle npart-1> < pressure of particle npart-1> < smoothing length of particle npart-1>
 ```
 
 
@@ -310,31 +310,16 @@ The output files are written in formatted text, and their content should be self
 
 ```
 # ndim =  2
-# nx =    <number of cells used>
+# npart =    <number of particles>
 # t =     <current time, float>
 # nsteps =  <current step of the simulation>
-#            x            y          rho          u_x          u_y            p
-<x value of cell (0, 0)> <y value of cell (0, 0)> <density in cell (0, 0)> <x velocity in cell (0, 0)> <y velocity in cell (0, 0)> <pressure in cell (0, 0)>
-<x value of cell (1, 0)> <y value of cell (1, 0)> <density in cell (1, 0)> <x velocity in cell (1, 0)> <y velocity in cell (1, 0)> <pressure in cell (1, 0)>
-                                                 .
-                                                 .
-                                                 .
-<x value of cell (nx-1, 0)> <y value of cell (nx-1, 0)> <density in cell (nx-1, 0)> <x velocity cell (nx-1, 0)> <y velocity in cell (nx-1, 0)> <pressure in cell (nx-1, 0)>
-<x value of cell (0, 1)> <y value of cell (0, 1)> <density in cell (0, 1)> <x velocity in cell (0, 1)> <y velocity in cell (0, 1)> <pressure in cell (0, 1)>
-<x value of cell (1, 1)> <y value of cell (1, 1)> <density in cell (1, 1)> <x velocity in cell (1, 1)> <y velocity in cell (1, 1)> <pressure in cell (1, 1)>
-                                                 .
-                                                 .
-                                                 .
-<x value of cell (nx-1, 1)> <y value of cell (nx-1, 1)> <density in cell (nx-1, 1)> <x velocity cell (nx-1, 1)> <y velocity in cell (nx-1, 1)> <pressure in cell (nx-1, nx-1)>
-                                                 .
-                                                 .
-                                                 .
-<x value of cell (0, nx-1)> <y value of cell (0, nx-1)> <density in cell (0, nx-1)> <x velocity in cell (0, nx-1)> <y velocity in cell (0, nx-1)> <pressure in cell (0, nx-1)>
-<x value of cell (1, nx-1)> <y value of cell (1, nx-1)> <density in cell (1, nx-1)> <x velocity in cell (1, nx-1)> <y velocity in cell (1, nx-1)> <pressure in cell (1, nx-1)>
-                                                 .
-                                                 .
-                                                 .
-<x value of cell (nx-1, nx-1)> <y value of cell (nx-1, nx-1)> <density in cell (nx-1, nx-1)> <x velocity cell (nx-1, nx-1)> <y velocity in cell (nx-1, nx-1)> <pressure in cell (nx-1, nx-1)>
+#            x            y          m          rho          u_x          u_y            p              h
+<x value of particle 0 > <y value of particle 0> <mass of particle 0> <density of particle 0>  <x velocity of particle 0> <y velocity of particle 0> < pressure of particle 0> < smoothing length of particle 0>
+                                            .
+                                            .
+                                            .
+                                            .
+<x value of particle npart-1 > <y value of particle npart-1> <mass of particle npart-1> <density of particle npart-1>  <x velocity of particle npart-1> <y velocity of particle npart-1> < pressure of particle npart-1> < smoothing length of particle npart-1>
 ```
 
 
@@ -364,11 +349,10 @@ I tried keeping the code as modular as possible, so adding/removing stuff should
 
 
 
-### in `cell.h`:
+### in `particles.h`
 
-- `cell_print_grid()`: prints out chosen grid quantity for the entire grid to stdout. Works independently of dimension of the code, so you can always call it.
-- `cell_print_grid_part()`: prints out chosen grid quantity for chosen cell intervals, i.e. give it xmin and xmax etc. 
-
+- `part_print_all` prints out particle properties for all particles to screen
+- `part_print_range(start, stop)` prints out particle properties for particles within a range of indexes [`start`, `stop`] to screen
 
 
 

@@ -121,12 +121,10 @@ void io_read_ic(){
     remove_trailing_comments(tempbuff);
     if (line_is_empty(tempbuff)) continue;
 
-    printf("Working with i=%d", i);
-
 #if NDIM == 1
     float m, x, u, p;
     check_number_of_columns_IC(tempbuff, 4);
-    sscanf(tempbuff, "%f %f %f %f\n", &m, &x, %u, &p);
+    sscanf(tempbuff, "%f %f %f %f\n", &x, &m, &u, &p);
 
     particles[i].m = m;
     particles[i].x[0] = x;
@@ -143,13 +141,11 @@ void io_read_ic(){
 #elif NDIM == 2
     float m, x, y, u, v, p;
     check_number_of_columns_IC(tempbuff, 6);
-    sscanf(tempbuff, "%f %f %f %f %f %f\n", &m, &x, &y, &u, &v, &p);
+    sscanf(tempbuff, "%f %f %f %f %f %f\n", &x, &y, &m, &u, &v, &p);
 
-    printf("x: %f y: %f\n", x, y);
-
-    particles[i].m = m;
     particles[i].x[0] = x;
     particles[i].x[1] = y;
+    particles[i].m = m;
     particles[i].v[0] = u;
     particles[i].v[1] = v;
 
@@ -164,7 +160,6 @@ void io_read_ic(){
  
     /* safety measure */
     if (i == pars.npart) {
-    printf("breaking\n");
     break;
     }
   }
@@ -188,6 +183,7 @@ void io_read_ic(){
   } 
 
   fclose(dat);
+
 }
 
 
@@ -366,7 +362,7 @@ void io_write_output(int *outstep, int step,  float t){
   fprintf(outfilep, "# nsteps = %12d\n", step);
 
 #if NDIM == 1
-  fprintf(outfilep, "# %12s %12s %12s %12s %12s %12s\n", 
+  fprintf(outfilep, "#%11s %12s %12s %12s %12s %12s\n", 
       "x", "m", "rho", "u", "p", "h");
   for (int i=0; i<pars.npart; i++){
     part p = particles[i];
