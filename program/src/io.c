@@ -19,13 +19,7 @@
 
 
 
-#if NDIM == 1
 extern cell *grid;
-#elif NDIM == 2
-extern cell **grid;
-#endif
-
-
 extern params pars;
 extern part* particles;
 
@@ -230,6 +224,8 @@ void io_read_paramfile(){
       pars.force_dt   = atof(varvalue);
     } else if (strcmp(varname, "boundary") == 0){
       pars.boundary   = atoi(varvalue);
+    } else if (strcmp(varname, "nngb") == 0){
+      pars.nngb       = atof(varvalue);
     } else if (strcmp(varname, "foutput") == 0){
       pars.foutput    = atoi(varvalue);
     } else if (strcmp(varname, "dt_out") == 0){
@@ -488,7 +484,8 @@ int line_is_comment(char* line){
    * <slash>*                               
    * -------------------------------------- */
 
-  char firsttwo[3];
+  /* initialize firsttwo explicily for valgrind */
+  char firsttwo[3] = {0, 0, 0};
   strncpy(firsttwo, line, 2);
 
   /* strcmp returns 0 if strings are equal */

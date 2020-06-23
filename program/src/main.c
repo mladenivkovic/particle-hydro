@@ -31,13 +31,7 @@
 
 params pars;      /* global parameters */
 part* particles;  /* particle array */
-
-/* particle grid */
-#if NDIM == 1
-cell *grid;     
-#elif NDIM == 2
-cell **grid;
-#endif
+cell* grid;       /* particle grid */
 
 
 
@@ -49,7 +43,7 @@ int main(int argc, char* argv[]){
 /* ====================================== */
 
   /* timing stuff */
-  clock_t step_start, step_end;
+  /* clock_t step_start, step_end; */
   clock_t all_start, all_end;
 
   all_start = clock();
@@ -82,6 +76,15 @@ int main(int argc, char* argv[]){
   params_print_log();
 
 
+  cell_build_grid();
+  /* cell_init_grid(); */
+  /* cell_distribute_particles(); */
+  /* cell_destroy_grid(); */ /* TODO: don't forget this! */
+
+
+
+
+
 
 
 
@@ -89,7 +92,7 @@ int main(int argc, char* argv[]){
   int step = 0;         /* step counter */
   int outcount = 0;     /* number of the output that we're writing */
   float t = 0;          /* time */
-  float dt = 0;         /* time step size */
+  /* float dt = 0;         [> time step size <] */
 
   int write_output = 0; /* whether the time step was reduced because we need to write an output */
 
@@ -106,35 +109,35 @@ int main(int argc, char* argv[]){
   /* -------------------- 
    *   Main loop
    * -------------------- */
-  while(0) { /* TODO: set to false temporary */
-    if (pars.tmax > 0 && t >= pars.tmax) break; 
-    if (pars.nsteps>0 && step == pars.nsteps) break;
-
-    step_start = clock(); /* timer */
-
-    /* initialize the grid */
-    cell_init_grid();
-
-    /* where the actual magic happens */
-    /* solver_step(&t, &dt, step,  &write_output); */
-
-    step_end = clock(); /* timer */
-
-    /* and update time and step*/
-    t += dt;
-    step += 1;
-
-    /* write output if you have to */
-    if (write_output){
-      io_write_output(&outcount, step, t);
-    }
-
-    /* announce */
-    if (pars.nstep_log == 0 || step % pars.nstep_log == 0) {
-      log_message("%14d %14.6e %14.6e %14.3es\n",
-                  step, t, dt, (float)(step_end - step_start) / CLOCKS_PER_SEC);
-    }
-  }
+  /* while(0) { [> TODO: set to false temporary <] */
+  /*   if (pars.tmax > 0 && t >= pars.tmax) break; */
+  /*   if (pars.nsteps>0 && step == pars.nsteps) break; */
+  /*  */
+  /*   step_start = clock(); [> timer <] */
+  /*  */
+  /*   [> initialize the grid <] */
+  /*   cell_init_grid(); */
+  /*  */
+  /*   [> where the actual magic happens <] */
+  /*   solver_step(&t, &dt, step,  &write_output); */
+  /*  */
+  /*   step_end = clock(); [> timer <] */
+  /*  */
+  /*   [> and update time and step<] */
+  /*   t += dt; */
+  /*   step += 1; */
+  /*  */
+  /*   [> write output if you have to <] */
+  /*   if (write_output){ */
+  /*     io_write_output(&outcount, step, t); */
+  /*   } */
+  /*  */
+  /*   [> announce <] */
+  /*   if (pars.nstep_log == 0 || step % pars.nstep_log == 0) { */
+  /*     log_message("%14d %14.6e %14.6e %14.3es\n", */
+  /*                 step, t, dt, (float)(step_end - step_start) / CLOCKS_PER_SEC); */
+  /*   } */
+  /* } */
 
   /* if you haven't written the output in the final step, do it now */
   if (!write_output){ io_write_output(&outcount, step, t); }

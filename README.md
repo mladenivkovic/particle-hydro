@@ -168,6 +168,7 @@ Accepted names, their datatypes and default values are:
 |                   |                   |       |                                                                               |
 | `boundary`        | = 0               | `int` | Boundary conditions  0: periodic. 1: transmissive. This sets the boundary conditions for all walls. |
 |                   |                   |       |                                                                               |
+| `nngb`            | = 16.0            |`float`| How many neighbours to use to define particle smoothing length                |
 
 
 

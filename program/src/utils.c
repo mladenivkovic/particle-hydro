@@ -46,7 +46,7 @@ void print_compile_defines(){
 
   utils_get_macro_strings(solver);
 
-  log_message("-----------------------------------------------------------------------------------------\n");
+  log_message("---------------------------------------------------------------------\n");
   log_message("\n");
   log_message("Compile time parameters are:\n");
   log_message("\n");

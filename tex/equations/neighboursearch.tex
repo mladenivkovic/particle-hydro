@@ -3,3 +3,45 @@
 \section{Searching For Neighbouring Particles}\label{chap:neighboursearch}
 %==================================================================================
 
+
+
+Hydrodynamics is local, and the particle interactions will only depend on a few neighbouring particles.
+How many neighbours we use is a parameter that we can set as \texttt{nngb} in the parameter file.
+So for every particle, we only want them to interact with a given number of neighbours, which we need to identify first.
+A naive way of doing that is comparing for each particle the distances of all other particles.
+However, that results in an $\mathcal{O}(N^2)$ algorithm, which can get quite expensive when the number of particles increases, especially since at least in principle the neighbour search needs to be done every time step.
+Instead, a more efficient way divide up the simulation box in cells, and distribute particles based on their position in those cells.
+
+
+
+
+
+
+
+
+
+%==================================================================================
+\subsection{The Cell Grid}
+%==================================================================================
+
+There are many good ways of distributing particles in cells, for example we could build adaptive trees and ensure a minimal or maximal number of particles in each cell.
+But that is not the point of this program, where we want to focus on the hydrodynamics.
+So instead, I built a simple uniform grid, where all cells have equal size.
+
+The determination of the smoothing length (see Section \ref{chap:smoothing_length}) needs to be done iteratively.
+Hence we need enough particles so that the iteration can be performed.
+The criterion for ``enough particles'' is set to be that the number of particles in any given cell and all its neighbours must be at least \texttt{CELL_MIN_PARTS_IN_NEIGHBOURHOOD_FACT} $\times$ \texttt{nngb} particles.
+\texttt{CELL_MIN_PARTS_IN_NEIGHBOURHOOD_FACT} is set in \texttt{defines.h}.
+If this is not the case, we reduce the number of cells, making each cell bigger, and try again.
+
+
+
+
+
+
+
+%==================================================================================
+\subsection{Finding Neighbours}
+%==================================================================================
+
+

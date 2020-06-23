@@ -36,9 +36,11 @@ void params_init_defaults(){
   pars.ccfl = 0.9;
   pars.force_dt = 0;
   pars.boundary = 0;
+  pars.nngb = 16.0;
 
   pars.nx = pars.npart;
   pars.dx = BOXLEN / pars.npart;
+  pars.ncelltot = pars.nx;
 
 
   /* output related parameters */
@@ -150,6 +152,21 @@ void params_init_derived(){
   }
 
 
+  /* Make first estimate for cell size */
+  /* --------------------------------- */
+
+#if NDIM == 1
+  pars.dx = BOXLEN / pars.npart * pars.nngb;
+#elif NDIM == 2
+  pars.dx = BOXLEN / sqrt(pars.npart / pars.nngb);
+#endif
+
+  pars.nx = (int) (BOXLEN / pars.dx) + 1;
+  pars.dx = BOXLEN / (float) pars.nx;
+
+  log_extra("Initial guess for grid parameters: nx=%d, dx=%.3f", pars.nx, pars.dx);
+
+
 
   /* Mark if we use constant sources */
   /* ------------------------------- */
@@ -177,6 +194,7 @@ void params_print_log(){
     log_message("Will write logs every %d steps\n", pars.nstep_log);
   }
 
+  log_message("particles:                   %d\n", pars.npart);
   log_message("tmax:                        %g\n", pars.tmax);
   log_message("nsteps:                      %d\n", pars.nsteps);
   log_message("C_cfl:                       %g\n", pars.ccfl);
@@ -215,7 +233,7 @@ void params_print_log(){
   log_message("constant source in r:        %g\n", pars.src_const_acc_r);
 #endif
   
-  log_message("-----------------------------------------------------------------------------------------\n");
+  log_message("---------------------------------------------------------------------\n");
 }
 
 

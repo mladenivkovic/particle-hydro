@@ -59,7 +59,14 @@
 #define SMALLP 0.
 
 
+/* assumption for number of particles per cell */
+#define PARTS_ARRAY_SIZE 100
 
+
+/* for grid building: require that every cell has at lest
+ * CELL_MIN_PARTS_IN_NEIGHBOURHOOD_FACT * nngb particles 
+ * within all the neighbours combined */
+#define CELL_MIN_PARTS_IN_NEIGHBOURHOOD_FACT 2.
 
 
 
