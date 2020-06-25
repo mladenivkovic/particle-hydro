@@ -237,7 +237,7 @@ npart = <integer, number of particles in total>
 ```
 
 All values for mass, positions, velocity, and pressure must be floats.
-You can put comments and empy lines wherever you feel like it.
+You can put comments and empty lines wherever you feel like it.
 
 
 
@@ -249,17 +249,17 @@ You can put comments and empy lines wherever you feel like it.
 ```
 ndim = 2
 npart = <integer, number of cells in any dimension>
-<mass of particle 0> <x position of particle 0> <y position of particle 0> <x velocity of particle 0> <y velocity of particle 0> <pressure of particle 0>
-<mass of particle 1> <x position of particle 1> <y position of particle 1> <x velocity of particle 1> <y velocity of particle 1> <pressure of particle 1>
+<x position of particle 0> <y position of particle 0> <mass of particle 0> <x velocity of particle 0> <y velocity of particle 0> <pressure of particle 0>
+<x position of particle 1> <y position of particle 1> <mass of particle 1> <x velocity of particle 1> <y velocity of particle 1> <pressure of particle 1>
                                     .
                                     .
                                     .
-<mass of particle npart-1> <x position of particle npart-1> <y position of particle npart-1> <x velocity of particle npart-1> <y velocity of particle npart-1> <pressure of particle npart-1>
+<x position of particle npart-1> <y position of particle npart-1> <mass of particle npart-1> <x velocity of particle npart-1> <y velocity of particle npart-1> <pressure of particle npart-1>
 
 ```
 
 All values for mass, position, velocity, and pressure must be floats.
-You can put comments and empy lines wherever you feel like it.
+You can put comments and empty lines wherever you feel like it.
 
 
 
