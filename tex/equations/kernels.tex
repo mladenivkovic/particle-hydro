@@ -3,3 +3,309 @@
 \section{Kernels}\label{chap:kernels}
 %=================================================================
 
+
+%=================================================================
+\subsection{General Properties}
+%=================================================================
+
+
+
+
+
+The core approach of SPH and meshless methods is the weighted interpolation approach, in particular for the fluid density:
+\begin{equation}
+	\rho(\R) = \sum_{j}^{N_{neigh}} m_j W(\R - \R_j, h) \label{eq:kernel-sph-density}
+\end{equation}
+
+$W$ is an as yet unspecified weight function.
+We want it to have following properties:
+\begin{itemize}
+	
+	\item Positive, decreases monotonically with distance, and is at least twice differentiable
+
+	\item Spherical symmetry: $W(\R - \R_j, h) = W(|\R - \R_j|, h)$ such that no direction is preferred.
+	
+	\item Compact support: $W(r, H) = 0 \ \forall r \geq H$
+	
+	This allows us to treat the hydrodynamics locally, i.e. only close-by particles contribute to the hydrodynamic interactions, as opposed to all particles in the simulation all the time, and reduces computational cost.
+	
+	\item Normalisation: $\int_V W(\R' - \R_i, h) dV' = 1$
+			
+			This follows from the requirement to conserve total mass: If the total mass in a volume $V$ is 
+			$M_{tot} = \sum_i^N m_i = \int_V \rho \de V$ for $N$ total particles, then we can write
+			\begin{align}
+				M_{tot} = \int_V \rho \de V
+						= \int_V \sum_{j}^{N} m_j W(\R - \R_j, h) \de V
+						= \sum_{j}^{N} m_j \int_V W(\R - \R_j, h) \de V
+						= \sum_i^N m_i 
+			\end{align}
+			which is only satisfied if $\int_V W(\R - \R_j, h) \de V = 1$.
+			Note that the reduction from the total number of particles $N$ to the number of neighbours $N_{neigh}$ in eq. \ref{eq:kernel-sph-density} comes from our requirement for compact support of the kernel, that limits the number of interactions to only some neighbours.
+			In principle however we always sum over all 
+			
+	\item A flat central portion so the density estimate is not strongly affected by a small change in position of a near neighbour
+
+\end{itemize}
+
+
+
+There are many functions that satisfy these conditions.
+In general, we use the definition
+\begin{equation}
+	W(\R, h) = \frac{C}{H^{\nu}} w (|\R|/H) = \frac{C}{H^{\nu}} w (q) 
+\end{equation}
+Some popular (and implemented) kernel functions are given in Table \ref{tab:kernels}.
+
+Following the work of \cite{dehnenImprovingConvergenceSmoothed2012}, we distinguish between the smoothing length (smoothing \emph{scale}) $h$ and the compact support radius $H$ for a kernel function.
+They showed that the smoothing length can be directly related to the numerical resolution of sound waves, and is as such a measure of resolution.
+Depending on the kernel used, the smoothing length and the kernel support radius have varying ratios.
+Those ratios are given in Table \ref{tab:kernels}.
+
+
+
+
+
+
+
+\begin{table}
+\caption{
+	\label{tab:kernels}
+	Functional forms, normalisation constants $C$ and compact support length to smoothing length ratio $\Gamma = H/h$ for various popular kernel functions.
+	$\nu$ is the dimension, and the kernel functions $w(q)$ are defined as $w(q = r/H) = 0 $ for $q > 1$ i.e. $r > H$.
+	$(\cdot)_+$ is shorthand for $\max(0, \cdot)$.
+	Adapted from \cite{dehnenImprovingConvergenceSmoothed2012}.
+}
+\centering
+\scriptsize
+\setlength\tabcolsep{5pt}
+\renewcommand{\arraystretch}{1.6}
+\begin{tabular}{llcccccc}
+kernel name & kernel function $w(q)$ & \multicolumn{3}{c}{C} & \multicolumn{3}{c}{$\Gamma = H/h$} \\ 
+ 	&  & $\nu = 1$ & $\nu = 2$ & $\nu = 3$ & $\nu = 1$ & $\nu = 2$ & $\nu = 3$ \\ 
+\hline 
+cubic spline & $(1 - q)_+^3 - 4(\frac{1}{2} - q)_+^3 $ & $\frac{8}{3}$ & $\frac{80}{7 \pi}$ & $\frac{16}{\pi}$ &  1.732051 &  1.778002  &  1.825742
+ \\ 
+quartic spline & $(1 - q)_+^4 - 5(\frac{3}{5} - q)_+^4 + 10 (\frac{1}{5} - q)_+^4 $ & $\frac{5^5}{768}$ & $\frac{5^6 3}{2398 \pi}$ & $\frac{5^6}{512 \pi}$ & 1.936492  & 1.977173  &  2.018932
+ \\ 
+quintic spline & $(1 - q)_+^5 - 6(\frac{2}{3} - q)_+^5 + 15(\frac{1}{3} - q)_+^5 $ & $\frac{3^5}{40}$ & $\frac{3^7 7}{478 \pi}$ & $\frac{3^7}{40 \pi}$ &  2.121321  &  2.158131  &  2.195775
+ \\ 
+\hline 
+Wendland $C^2$, $\nu = 1$ & $(1 - q)_+^3 (1 + 3q) $ & $\frac{5}{4}$ &  &  &  1.620185
+  &  &  \\ 
+Wendland $C^4$, $\nu = 1$ & $(1 - q)_+^5 (1 + 5q + 8q^2) $ & $\frac{3}{2}$ &  &  &  1.936492
+ &  &  \\ 
+Wendland $C^6$, $\nu = 1$ & $(1 - q)_+^7 (1 + 7q + 19q^2 + 21 q^3) $ & $\frac{55}{32}$ &  &  &  2.207940
+  &  &  \\ 
+\hline 
+Wendland $C^2$, $\nu = 2,3$ & $(1 - q)_+^4 (1 + 4q) $ &  & $\frac{7}{\pi}$ & $\frac{21}{2\pi}$ &  &  1.897367  &  1.936492
+ \\ 
+Wendland $C^4$, $\nu = 2,3$ & $(1 - q)_+^6 (1 + 6q + \frac{35}{3} q^2 ) $ &  & $\frac{9}{\pi}$ & $\frac{495}{32 \pi}$ &  &  2.171239  &  2.207940
+ \\ 
+Wendland $C^6$, $\nu = 2,3$ & $(1 - q)_+^8 (1 + 8q + 25q^2 + 32q^3 ) $ &  & $\frac{78}{7\pi}$ & $\frac{1365}{64 \pi}$ &  &  2.415230  &  2.449490
+ \\ 
+\end{tabular}
+\end{table}
+
+
+
+
+
+
+
+%=================================================================
+\subsection{Kernel Derivatives}
+%=================================================================
+
+Computing kernel derivatives can easily be messed up, particularly so when using shorthand index notation, so we write them down explicitly here.
+Note that Cartesian coordinates are denoted as $\x$, and radial coordinates are denoted as $r$, $\theta$, $\phi$.
+
+If a kernel is defined as (note the particle index notation)
+
+\begin{align}
+	W_j(\x_i)	 = W(\x_i - \x_j, h_i))
+				 = \frac{C}{H_i^\nu} w \left(\frac{| \x_i - \x_j |}{H_i} \right)
+				 =  \frac{C}{H_i^\nu} w ( q_{ij} )
+\end{align}
+
+
+and we assume that the smoothing length $h_i$ is treated as constant at this point w.r.t. spatial dimensions ($\x$ and $r$, $\theta$, $\phi$ alike).
+
+
+First, let us recall that we define
+
+\begin{align}
+	r_{ij} &\equiv |\x_i - \x_j| \\
+	q_{ij} &\equiv \frac{r_{ij}}{H_i}
+\end{align}
+
+We can pre-compute
+
+\begin{align}
+	\frac{\del q_{ij}(r_{ij})}{\del r_{ij}} 	
+			&= \frac{\del}{\del r_{ij}} \frac{r_{ij}}{H_i} = \frac{1}{H_i}		\label{eq:kernel-dqdr} \\[.5em]
+	\frac{\del q_{ij}(q_{ij})}{\del h_{i}} 	
+			&= \frac{\del}{\del h_{i}} \frac{r_{ij}}{H_i} = -\frac{r_{ij}}{H_i^2} \frac{\del}{\del h_{i}} H_i(h_i) = - \Gamma \frac{r_{ij}}{H_i^2}	\label{eq:kernel-dqdh} \\[.5em]
+	\DELDX{r_{ij}}		
+			&= \deldx \sqrt{(\x_i - \x_j)^2}
+			= \frac{1}{2} \frac{1}{\sqrt{(\x_i - \x_j)^2}} \cdot 2 (\x_i - \x_j) = \frac{\x_i - \x_j}{r_{ij}} 	\label{eq:kernel-drdx}
+\end{align}
+
+In eq. \ref{eq:kernel-dqdh} we use the fact that $H = \Gamma h$.
+Values for $\Gamma$ are given in Table \ref{tab:kernels}.
+
+
+The radial derivative of the kernel along the line between particles $i$ and $j$ is
+%
+\begin{align}
+	\frac{\del}{\del r_{ij}} W_j (\x_i) 	
+			&= \frac{\del}{\del r_{ij}} \left( \frac{C}{H_i^\nu} w ( q_{ij} )	\right)	\nonumber \\[.5em]
+			&= \frac{C}{H_i^\nu} \frac{\del w(q_{ij})}{\del q_{ij}} \frac{\del q_{ij}(r_{ij})}{\del r_{ij}} 	\nonumber \\[.5em]
+			&= \frac{C}{H_i^{\nu + 1}} \frac{\del w(q_{ij})}{\del q_{ij}}  \label{eq:kernel-dWdr-with-indices}
+\end{align}
+or, neglecting particle indices:
+\begin{align}
+	\deldr W (\x) = \frac{C}{H_i^{\nu + 1}} \frac{\del w(q)}{\del q} \label{eq:kernel-dWdr}
+\end{align}
+
+
+
+
+The Cartesian gradient of the kernel is given by
+
+\begin{align}
+	\deldx W_j (\x_i) 	
+			&= \deldx \left( \frac{C}{H_i^\nu} w ( q_{ij} )	\right)	\nonumber \\[.5em]
+			&= \frac{C}{H_i^\nu} \frac{\del w(q_{ij})}{\del q_{ij}} \frac{\del q_{ij}(r_{ij})}{\del r_{ij}} \frac{\del r_{ij}}{\del x} \nonumber \\[.5em]
+			&= \frac{C}{H_i^{\nu + 1}} \frac{\del w(q_{ij})}{\del q_{ij}}  \frac{\x_i - \x_j}{r_{ij}} 	\label{grad_kernel_final}
+\end{align}
+
+
+
+The derivative with respect to the smoothing length is given by
+\begin{align}
+	\frac{\del}{\del h_{i}} W_j (\x_i) 	
+			&= \frac{\del}{\del h_{i}} \left( \frac{C}{H_i^\nu} w ( q_{ij} )	\right)	\nonumber \\[.5em]
+			&= -\frac{\nu C }{H_i^{\nu + 1}} \Gamma w(q_{ij})
+				+ \frac{C}{H_i^\nu} \frac{\del w(q_{ij})}{\del q_{ij}} \frac{\del q_{ij}(r_{ij})}{\del h_{i}} 	\nonumber\\[.5em]
+			&= -\frac{\nu C \Gamma}{H_i^{\nu + 1}} w(q_{ij})
+				+\frac{C}{H_i^\nu} \frac{\del w(q_{ij})}{\del q_{ij}} \left( - \Gamma \frac{r_{ij}}{H_i^2} \right) 	\nonumber\\[.5em]
+			&= -\frac{\nu C \Gamma}{H_i^{\nu + 1}} w(q_{ij})
+				-\frac{\Gamma C}{H_i^{\nu + 2}} \frac{\del w(q_{ij})}{\del q_{ij}} r_{ij} 	\nonumber\\[.5em]
+			&= - \frac{\nu \Gamma}{H_i} W(\x_i) - \frac{\Gamma r_{ij}}{H_i} \DELDR{W(\x_i)} \nonumber \\[.5em]
+			&= - \frac{\Gamma}{H_i} \left( \nu W(\x_i) + r_{ij}  \DELDR{W(\x_i)} \right) \nonumber \\[.5em]
+			&= - \frac{1}{h_i} \left( \nu W(\x_i) + r_{ij}  \DELDR{W(\x_i)} \right) 
+			 \label{eq:kernel-dWdh}
+\end{align}
+
+
+
+
+
+
+
+
+In summary:
+\begin{align*}
+	\deldr W (\x) 
+			&= \frac{C}{h_i^{\nu + 1}} \frac{\del w(q)}{\del q} \\[.5em]
+	\deldx W_j(\x_i) 
+			&= \frac{C}{h_i^{\nu + 1}} \frac{\del w(q_{ij})}{\del q_{ij}}  \frac{\x_i - \x_j}{r_{ij}}\\[.5em]
+ 	\frac{\del}{\del h} W(\x) 
+ 			&= - \frac{1}{h} \left( \nu W(\x) + r_{ij}  \DELDR{W(\x)} \right) \\[.5em]
+\end{align*}
+
+
+Values for $\Gamma$ and $C$ are given in table \ref{tab:kernels}.
+Functional forms for the derivatives of the kernel functions, $\DELDR{w(q)}$ are given in table \ref{tab:kernel-derivatives}.
+
+
+\begin{table}
+\caption{
+	\label{tab:kernel-derivatives}
+	Derivatives of the functional form for kernel functions $\DELDR{w(p)}$.
+}
+\centering
+
+\begin{tabular}{|c|c|}
+\hline 
+kernel & derivatives \\ 
+\hline 
+to & do \\ 
+\hline 
+\end{tabular} 
+\end{table}
+
+
+
+
+
+
+
+
+
+%=================================================================
+\subsection{On the definition of $r_{ij}$}
+%=================================================================
+
+
+The definition of $r_{ij}$ requires a bit more discussion.
+Since kernels used in hydrodynamics are usually taken to be spherically symmetric, we might as well have defined
+
+\begin{align*}
+r'_{ij} = |\x_j - \x_i |
+\end{align*}
+
+which would leave the evaluation of the kernels invariant [$r'_{ij} = r_{ij}$], but the gradients would have the opposite direction:
+
+\begin{align*}
+\DELDX{r'_{ij}}	
+=   \frac{\x_j - \x_i}{r'_{ij}} 
+= - \frac{\x_i - \x_j}{r_{ij}}
+= - \DELDX{r_{ij}}
+\end{align*}
+
+So which definition should we take? \\
+
+
+Consider a one-dimensional case where we choose two particles $i$ and $j$ such that $x_j > x_i$ and $q_{ij} = | x_j - x_i | / H_i < 1$.
+Because we're considering a one-dimensional case with $x_j > x_i$, we can now perform a simple translation such that particle $i$ is at the origin, i.e. $x'_i = 0$ and $x'_j = x_j - x_i = | x_j - x_i | = r_{ij}$.
+In this scenario, the gradient in Cartesian coordinates and in spherical coordinates must be the same:
+
+
+\begin{align}
+	\frac{\del}{\del x'} W (|x_i' - x'|, h_i)  \big{|}_{x' = x_j' } &= \frac{\del}{\del r_{ij}} W (r_{ij}, h_i) 		\nonumber\\
+%
+	\Rightarrow \quad \frac{1}{h_i^\nu} \frac{\del w(q'_{ij})}{\del q'_{ij}} \frac{\del q'_{ij}(r'_{ij})}{\del r'_{ij}} \frac{\del r'_{i}(x')}{\del x'}	  \big{|}_{x' = x_j' }  &=
+		\frac{1}{h_i^\nu} \frac{\del w(q_{ij})}{\del q_{ij}} \frac{\del q_{ij}(r_{ij})}{\del r_{ij}}				\label{spher_cart}
+\end{align}
+
+
+
+
+We have the trivial case where
+\begin{align*}
+	r'_{ij} &= |x_i' - x_j'| = | x_i - x_j | = r_{ij} \\
+	q'_{ij} &= r'_{ij}/h_i = q_{ij} \\
+	\Rightarrow \quad \frac{\del w(q'_{ij})}{\del q'_{ij}} &= \frac{\del w(q_{ij})}{\del q_{ij}}, \quad \frac{\del q'_{ij}(r'_{ij})}{\del r'_{ij}} = \frac{\del q_{ij}(r_{ij})}{\del r_{ij}}
+\end{align*}
+
+
+
+giving us the condition from \ref{spher_cart}:
+
+
+
+
+
+
+\begin{equation}
+	\frac{\del r'_{i}(x')}{\del x'}	  \big{|}_{x' = x_j' } = 1 = \frac{\del r_{i}(x)}{\del x}
+\end{equation}
+
+
+this is satisfied for
+\begin{align*}
+	r_j(\x) &= | \x - \x_j | \\ 
+	\Rightarrow r_{ij} &= | \x_i - \x_j |,\ \text{ not } \ r_{ij} = | \x_j - \x_i |
+\end{align*}
+

@@ -4,3 +4,70 @@
 %==================================================================================
 
 
+%==================================================================================
+\subsection{Computing the Smoothing Lenghts}
+%==================================================================================
+
+
+
+There is no unique way of defining how the smoothing length should be set.
+You could have for example a fixed smoothing length for all particles everywhere, or let it evolve over time based on the densest region in your simulation, or whatnot.
+However, it is desirable to resolve both clustered and sparse regions of your simulation evenly, i.e. with a roughly constant ratio of $h$ to the mean local particle separation.
+Thus a natural choice for setting the smoothing length is to relate to the local number density of particles, i.e.
+\begin{equation}
+	h(\R_i) \propto n(\R_i) ^ {-1/\nu}
+\end{equation}
+for $\nu$ dimensions.
+Let $\eta$ be a parameter specifying the smoothing length in units of the mean particle spacing $n ^ {-1/\nu} = (\rho/m) ^ {-1/\nu}$.
+Then
+\begin{equation}
+	h(\R_i) = \eta n(\R_i) ^ {-1/\nu} = \eta \left(\frac{\rho_i}{m_i}\right) ^ {-1/\nu} = \eta \left(\frac{m_i}{\rho_i}\right) ^ {1/\nu}
+\end{equation}
+and simultaneously, we have
+\begin{equation}
+	\rho_i = \sum_{n} m_j W(|\R_i - \R_j|, h_i)
+\end{equation}
+to solve, where $n$ refers to all neighbouring particles of $i$, including itself.
+
+This set of equations can be solved iteratively using the Newton-Raphson root finding algorithm:
+For a differentiable function $f(x)$, we find $x_{root}$ that satisfies $f(x_{root}) = 0$ by iterating
+\begin{equation}
+	x_{n+1} = x_{n} - \frac{f(x_n)}{\DDX{f}(x_n)}
+\end{equation}
+until we reach some tolerance $\varepsilon$:
+\begin{equation}
+	|f(x_n)| \leq \varepsilon
+\end{equation}
+
+
+In our scenario, we have
+\begin{align}
+	f 
+		&= f(h_i) = h_i - \eta \left(\frac{m_i}{\rho_i}\right) ^ {1/\nu}\\
+	\frac{\de f}{\de h_i} 
+		&= 1 - \eta m_i ^ {1/\nu} \ \frac{\de }{\de h_i} \rho_i ^ {-1/\nu} 
+			\nonumber \\
+		&= 1 + \eta m_i ^ {1/\nu}  \frac{1}{\nu} \ \rho_i ^ {-1/\nu - 1} \frac{\de \rho_i}{\de h_i} 
+			\nonumber \\
+		&= 1 + \eta m_i ^ {1/\nu}  \frac{1}{\nu} \ \rho_i ^ {-1/\nu - 1} \sum_{n} m_j \frac{\de}{\de h_i} W(|\R_i - \R_j|, h_i) 
+			\nonumber \\
+		&= 1 - \eta m_i ^ {1/\nu}  \frac{1}{\nu} \ \rho_i ^ {-1/\nu - 1} \sum_{n} m_j \frac{1}{h_i} \left( \nu W(\x_i) + r_{ij}  \DELDR{W(\x_i)} \right)
+			\nonumber \\
+		&= 1 - \frac{\eta}{h_i}  \frac{m_i ^ {1/\nu}}{\rho_i^{1 + 1/\nu}}  \sum_{n} m_j \left( W(\x_i) + \frac{r_{ij}}{\nu}   \DELDR{W(\x_i)} \right)
+\end{align}
+
+
+
+
+
+
+
+
+
+
+
+%==================================================================================
+\subsection{$\eta$ and $N_{neigh}$}
+%==================================================================================
+
+Add discussion that is in \cite{priceSmoothedParticleHydrodynamics2012a}.

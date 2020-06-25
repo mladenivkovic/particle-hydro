@@ -41,7 +41,11 @@ If this is not the case, we reduce the number of cells, making each cell bigger,
 
 
 %==================================================================================
-\subsection{Finding Neighbours}
+\subsection{Finding Neighbours to interact with}
 %==================================================================================
+
+Once the smoothing length $h_i$ (see Section \ref{chap:smoothing_length} on how that's done) for a particle $i$ is set, we don't want to keep all the particles from all surrounding cells in memory as neighbours, but only keep those that are going to interact with this particle, i.e. only those that fit within the compact support radius $H_i$ of the kernel in use.
+To this end, we store for each particle $i$ the neighbouring particle indices with distance smaller than $H_i$ in the \verb|int* neigh_iact|, where the index refers to the particle's index in the \texttt{particles} array, as well as the distance $r_{ij}$ to each neighbouring particle $j$ into the array \verb|float* r|. 
+These arrays will be sorted by ascending particle index to make interactions during particle loops simpler (see Section \ref{chap:particle_loops}).
 
 
