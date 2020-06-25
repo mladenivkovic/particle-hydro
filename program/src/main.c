@@ -17,6 +17,7 @@
 #include "defines.h"
 #include "gas.h"
 #include "io.h"
+#include "kernel.h"
 #include "params.h"
 #include "particles.h"
 #include "solver.h"
@@ -77,9 +78,18 @@ int main(int argc, char* argv[]){
 
 
   cell_build_grid();
-  /* cell_init_grid(); */
-  /* cell_distribute_particles(); */
-  /* cell_destroy_grid(); */ /* TODO: don't forget this! */
+  part_get_smoothing_lengths();
+  free_part_arrays(); /* TODO: don't forget this! */
+  cell_destroy_grid(); /* TODO: don't forget this! */
+
+  /* temporary: to check kernels */
+  /* printf("--------------------------------------------------------------\n"); */
+  /* for (int i = 0; i < 101; i++){ */
+  /*   float r = 0.02 * (float) i; */
+  /*   float h = 1. / KERNEL_Hoverh; */
+  /*   printf("%.6f, %.6f, %.6f\n", r, kernel_W(r, h), kernel_dWdr(r, h)); */
+  /* } */
+  /* printf("--------------------------------------------------------------\n"); */
 
 
 

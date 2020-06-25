@@ -46,8 +46,13 @@
 #define STR(x) STR_(x)
 #define STR_(x) #x
 
-/* iteration tolerance */
+/* iteration tolerance exact Riemann solver*/
 #define EPSILON_ITER 1e-6
+
+/* smoothing length iteration tolerance */
+#define EPSILON_H 1e-3
+/* max number of iterations to determine smoothing length */
+#define ITER_MAX_H 1000
 
 
 /* minimal timestep size */

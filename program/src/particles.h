@@ -20,9 +20,12 @@ typedef struct {
   float m;      /* particle mass */ 
   float h;      /* particle smoothing length */
 
-
   pstate prim;  /* primitive fluid state */
   cstate cons;  /* conserved fluid state */
+
+  int* neigh_iact;  /* neighbours we interact with */
+  int nneigh_iact;  /* number of neighbours to interact with; = sizes of neigh_iact and r arrays */
+  float* r;         /* distances to neighbours to interact with */
 
 } part;
 
@@ -31,6 +34,10 @@ typedef struct {
 
 void init_part_array(void);
 void init_part(part* p);
+void free_part_arrays();
+
+void part_get_smoothing_lengths();  /* compute all smoothing lengths */
+void part_compute_h(part* p, float* r, int* neighs, int nneigh);   /* compute smoothing length of given particle */
 
 
 /* particle STDOUT printing */
