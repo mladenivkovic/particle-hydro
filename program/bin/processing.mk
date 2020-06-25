@@ -18,11 +18,11 @@ NDIM = 1
 endif
 
 ifndef SOLVER
-SOLVER = SPH-DS
+SOLVER = SPH_DS
 endif
 
 ifndef KERNEL
-KERNEL = CUBIC-SPLINE
+KERNEL = CUBIC_SPLINE
 endif
 
 ifndef RIEMANN
@@ -142,6 +142,28 @@ endif
 
 
 
+ifeq ($(strip $(KERNEL)), CUBIC_SPLINE)
+KERNELINT = 11
+endif
+ifeq ($(strip $(KERNEL)), QUARTIC_SPLINE)
+KERNELINT = 12
+endif
+ifeq ($(strip $(KERNEL)), QUINTIC_SPLINE)
+KERNELINT = 13
+endif
+ifeq ($(strip $(KERNEL)), WENDLAND_C2)
+KERNELINT = 21
+endif
+ifeq ($(strip $(KERNEL)), WENDLAND_C4)
+KERNELINT = 22
+endif
+ifeq ($(strip $(KERNEL)), WENDLAND_C6)
+KERNELINT = 23
+endif
+
+
+
+
 ifeq ($(strip $(SOURCES)), NONE)
 SOURCESINT = 0
 endif
@@ -163,7 +185,8 @@ endif
 COMPILEDATE:=$(shell date "+%F %T")
 
 
-DEFINES= -DNDIM=$(NDIM) -DSOLVER=$(SOLVERINT) -DRIEMANN=$(RIEMANNINT) -DLIMITER=$(LIMITERINT) -DSOURCE=$(SOURCESINT) -DCOMPDATE="$(COMPILEDATE)" 
+DEFINES= -DNDIM=$(NDIM) -DSOLVER=$(SOLVERINT) -DRIEMANN=$(RIEMANNINT) -DLIMITER=$(LIMITERINT) \
+	-DKERNEL=$(KERNELINT) -DSOURCE=$(SOURCESINT) -DCOMPDATE="$(COMPILEDATE)" 
 
 
 ifdef SPH
@@ -190,7 +213,7 @@ SRCDIR=../src
 
 #include paths. Will be followed in that order.
 # VPATH=$(SRCDIR):$(SRCDIR)/limiter:$(SRCDIR)/solver:$(SRCDIR)/riemann:$(SRCDIR)/sources:$(SRCDIR)/integrate
-VPATH=$(SRCDIR):$(SRCDIR)/solver
+VPATH=$(SRCDIR):$(SRCDIR)/kernel:$(SRCDIR)/solver
 
 #include directories for headers
 IDIR=$(SRCDIR)
@@ -242,6 +265,28 @@ endif
 
 
 
+ifeq ($(strip $(KERNEL)), CUBIC_SPLINE)
+KERNELOBJ = cubic_spline.o
+endif
+ifeq ($(strip $(KERNEL)), QUARTIC_SPLINE)
+KERNELOBJ = quartic_spline.o
+endif
+ifeq ($(strip $(KERNEL)), QUINTIC_SPLINE)
+KERNELOBJ = quintic_spline.o
+endif
+ifeq ($(strip $(KERNEL)), WENDLAND_C2)
+KERNELOBJ = wendlandC2.o
+endif
+ifeq ($(strip $(KERNEL)), WENDLAND_C4)
+KERNELOBJ = wendlandC4.o
+endif
+ifeq ($(strip $(KERNEL)), WENDLAND_C6)
+KERNELOBJ = wendlandC6.o
+endif
+
+
+
+
 ifeq ($(strip $(SOURCES)), NONE)
 	SRCOBJ=
 endif
@@ -270,4 +315,4 @@ endif
 
 
 # OBJECTS = main.o gas.o params.o particles.o io.o utils.o cell.o solver.o limiter.o $(HYDROOBJ) $(LIMITEROBJ) $(RIEMANNOBJ) $(SRCOBJ) $(INTOBJ)
-OBJECTS = main.o gas.o params.o particles.o io.o utils.o cell.o solver.o $(HYDROOBJ)
+OBJECTS = main.o gas.o params.o particles.o io.o utils.o cell.o solver.o $(HYDROOBJ) $(KERNELOBJ)

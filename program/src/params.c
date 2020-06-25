@@ -103,8 +103,9 @@ void params_init_derived(){
     if (slash > 0) slash += 1;
 
     char solver[80];
+    char kernel[80];
 
-    utils_get_macro_strings(solver);
+    utils_get_macro_strings(solver, kernel);
 
     /* now copy the exact part that you want into filename string */
     strncpy(pars.outputfilename, pars.datafilename+slash, dot-slash);

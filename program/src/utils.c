@@ -43,8 +43,9 @@ void print_compile_defines(){
 
 
   char solver[80];
+  char kernel[80];
 
-  utils_get_macro_strings(solver);
+  utils_get_macro_strings(solver, kernel);
 
   log_message("---------------------------------------------------------------------\n");
   log_message("\n");
@@ -54,13 +55,14 @@ void print_compile_defines(){
   log_message("Compile time:                "STR(COMPDATE)"\n");
   log_message("Dimensions:                  "STR(NDIM)"\n");
   log_message("Hydro solver:                %s\n", solver);
+  log_message("Kernel:                      %s\n", kernel);
 }
 
 
 
 
 
-void utils_get_macro_strings(char* solver){
+void utils_get_macro_strings(char* solver, char* kernel){
   /* -------------------------------------------- 
    * Get string names for the solver in use.
    * -------------------------------------------- */
@@ -73,6 +75,20 @@ void utils_get_macro_strings(char* solver){
   strcpy(solver, "MESHLESS_IVANOVA");
 #endif
 
+
+#if KERNEL == CUBIC_SPLINE
+  strcpy(kernel, "cubic spline");
+#elif KERNEL == QUARTIC_SPLINE
+  strcpy(kernel, "quartic spline");
+#elif KERNEL == QUINTIC_SPLINE
+  strcpy(kernel, "quintic spline");
+#elif KERNEL == WENDLAND_C2
+  strcpy(kernel, "wendland C2");
+#elif KERNEL == WENDLAND_C4
+  strcpy(kernel, "wendland C4");
+#elif KERNEL == WENDLAND_C6
+  strcpy(kernel, "wendland C6");
+#endif
 
 }
 

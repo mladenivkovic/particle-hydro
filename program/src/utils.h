@@ -11,7 +11,7 @@
 /* stuff that doesn't fit anywhere else */
 void print_header();
 void print_compile_defines();
-void utils_get_macro_strings(char* solver);
+void utils_get_macro_strings(char* solver, char* kernel);
 
 
 /* helper functions */

@@ -109,6 +109,14 @@ static const float BETA = 0.5 * (GAMMA - 1.) / GAMMA;
 #define VANLEER 3
 #define MC 4
 
+/* define kernels as integers */
+#define CUBIC_SPLINE 11
+#define QUARTIC_SPLINE 12
+#define QUINTIC_SPLINE 13
+#define WENDLAND_C4 21
+#define WENDLAND_C5 22
+#define WENDLAND_C6 23
+
 /* define sources as integers */
 #define SRC_CONST 1
 #define SRC_RADIAL 2
