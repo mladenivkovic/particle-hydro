@@ -315,4 +315,4 @@ endif
 
 
 # OBJECTS = main.o gas.o params.o particles.o io.o utils.o cell.o solver.o limiter.o $(HYDROOBJ) $(LIMITEROBJ) $(RIEMANNOBJ) $(SRCOBJ) $(INTOBJ)
-OBJECTS = main.o gas.o params.o particles.o io.o utils.o cell.o solver.o $(HYDROOBJ) $(KERNELOBJ)
+OBJECTS = main.o gas.o params.o particles.o io.o utils.o cell.o solver.o kernel.o sort.o $(HYDROOBJ) $(KERNELOBJ)
