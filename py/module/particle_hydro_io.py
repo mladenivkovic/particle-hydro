@@ -181,7 +181,7 @@ def read_ic(fname):
             else:
                 print("Unrecognized value name:", name)
 
-            got_header = got_npart and got_ndim
+            got_header = (got_npart and got_ndim)
             if got_header:
                 if ndim == 1:
                     x = np.empty((npart), dtype=np.float) 
@@ -235,6 +235,13 @@ def read_ic(fname):
 
 
     # checks
+    if not got_header:
+        print("I didn't find the data in the header that I require?")
+        if not got_ndim: print("Missing ndim")
+        if not got_npart: print("Missing npart")
+        print("quitting")
+        quit(1)
+
     if i != npart:
         print("Got too few values in x direction. Got i=", i, "should be", npart)
         quit(1)
