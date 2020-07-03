@@ -24,9 +24,9 @@ try_to_import()
 
 
 
-from hydro_utils import parse_arguments, label_to_kwargs
-from hydro_io import read_output
-from hydro_plotting import plot_1D, plot_2D, plot_2D_profile, scatter_2D, save_plot
+from particle_hydro_utils import parse_arguments, label_to_kwargs
+from particle_hydro_io import read_output
+from particle_hydro_plotting import plot_1D, plot_2D, plot_2D_profile, scatter_2D, save_plot
 
 
 if __name__ == "__main__":
