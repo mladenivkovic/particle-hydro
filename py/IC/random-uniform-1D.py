@@ -7,8 +7,7 @@
 
 
 import numpy as np
-from hydro_io import write_ic
-import hydro_io
+from particle_hydro_io import write_ic
 
 
 nx = 50

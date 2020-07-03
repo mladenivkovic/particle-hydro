@@ -13,9 +13,9 @@
 
 
 
-from hydro_utils import get_only_cmdlinearg
-from hydro_io import read_output, write_ic
-from hydro_plotting import plot_1D, plot_2D
+from particle_hydro_utils import get_only_cmdlinearg
+from particle_hydro_io import read_output, write_ic
+from particle_hydro_plotting import plot_1D, plot_2D
 
 
 if __name__ == "__main__":

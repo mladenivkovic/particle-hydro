@@ -8,11 +8,10 @@
 
 
 import numpy as np
-from hydro_io import write_ic
-import hydro_io
+from particle_hydro_io import write_ic
 
 
-nx = 10
+nx = 50
 m_all = 1.
 ux_all = 0.
 uy_all = 0.
