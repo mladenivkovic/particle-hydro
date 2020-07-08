@@ -9,6 +9,7 @@
 
 import numpy as np
 from particle_hydro_io import write_ic
+from particle_hydro_IC import IC_uniform_coordinates
 
 
 nx = 50
@@ -26,12 +27,7 @@ u = np.zeros((npart, 2), dtype=np.float)
 u[:, 0] = ux_all
 u[:, 1] = uy_all
 p = np.ones(npart, dtype=np.float) * p_all
-
-dxhalf = 0.5/nx
-xcoords = np.linspace(dxhalf, 1-dxhalf, nx)
-ycoords = np.linspace(dxhalf, 1-dxhalf, nx)
-x,y = np.meshgrid(xcoords, ycoords)
-x = np.stack((x.ravel(), y.ravel()), axis=1)
+x = IC_uniform_coordinates(nx, ndim=2)
 
 
 write_ic("uniform-2D-{0:d}.dat".format(npart), 2, x, m, u, p)
