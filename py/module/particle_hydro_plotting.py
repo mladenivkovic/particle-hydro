@@ -178,16 +178,11 @@ def plot_2D(x, rho, u, p, t = None, nx = 100, kwargs={}):
     """
 
 
-    rhoH, _, _ = np.histogram2d(x[:,0], x[:,1], bins=nx, range=[[0, 1], [0, 1]], weights=rho)
-    uxH , _, _ = np.histogram2d(x[:,0], x[:,1], bins=nx, range=[[0, 1], [0, 1]], weights=u[:,0])
-    uyH , _, _ = np.histogram2d(x[:,0], x[:,1], bins=nx, range=[[0, 1], [0, 1]], weights=u[:,1])
-    pH  , _, _ = np.histogram2d(x[:,0], x[:,1], bins=nx, range=[[0, 1], [0, 1]], weights=p)
-
-    rhoH.transpose()
-    uxH.transpose()
-    uyH.transpose()
-    pH.transpose()
-
+    # do y-x histograms for imshow.
+    rhoH, _, _ = np.histogram2d(x[:,1], x[:,0], bins=nx, range=[[0, 1], [0, 1]], weights=rho)
+    uxH , _, _ = np.histogram2d(x[:,1], x[:,0], bins=nx, range=[[0, 1], [0, 1]], weights=u[:,0])
+    uyH , _, _ = np.histogram2d(x[:,1], x[:,0], bins=nx, range=[[0, 1], [0, 1]], weights=u[:,1])
+    pH  , _, _ = np.histogram2d(x[:,1], x[:,0], bins=nx, range=[[0, 1], [0, 1]], weights=p)
 
 
     fig = plt.figure(figsize=(21, 5))
