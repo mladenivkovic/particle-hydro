@@ -226,6 +226,8 @@ void io_read_paramfile(){
       pars.boundary   = atoi(varvalue);
     } else if (strcmp(varname, "nngb") == 0){
       pars.nngb       = atof(varvalue);
+    } else if (strcmp(varname, "eta") == 0){
+      pars.eta        = atof(varvalue);
     } else if (strcmp(varname, "foutput") == 0){
       pars.foutput    = atoi(varvalue);
     } else if (strcmp(varname, "dt_out") == 0){

@@ -25,7 +25,8 @@ typedef struct {
   float force_dt;                       /* force a time step size (except if you need to write an output) */
   int boundary;                         /* boundary condition for all walls.*/
   float nngb;                           /* number of neighbours to use */
-
+  float eta;                            /* actual resolution, preferable way of defining number of neighbours to use. */
+  
   int nx;                               /* number of grid points */
   float dx;                             /* cell size */
   int ncelltot;                         /* total number of cells in grid. nx in 1D, nx^2 in 2D. Mainly used to avoid dimension checks */

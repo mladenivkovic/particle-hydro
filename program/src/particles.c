@@ -16,6 +16,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 
 
@@ -198,10 +199,8 @@ void part_compute_h(part* p, float* r, int* neigh, int nneigh){
   int niter = 0;
 
 #if NDIM == 1
-  float eta = pars.nngb * 0.5 / KERNEL_Hoverh;
   float mipower = p->m; /* m_i ^ {1 / \nu} */
 #elif NDIM == 2
-  float eta = sqrtf(pars.nngb / PI) / KERNEL_Hoverh;
   float mipower = sqrtf(p->m); /* m_i ^ {1 / \nu} */
 #endif
 
@@ -225,8 +224,8 @@ void part_compute_h(part* p, float* r, int* neigh, int nneigh){
 
     /* now compute f and df/dh */
     float rhopower = pow(rhoi, -1. - 1./NDIM); /* rho_i ^{-1 - 1/\nu} */
-    float f = hi - eta * mipower * rhopower * rhoi;
-    float dfdh = 1. - eta / hi * mipower * rhopower * dfdh_sum;
+    float f = hi - pars.eta * mipower * rhopower * rhoi;
+    float dfdh = 1. - pars.eta / hi * mipower * rhopower * dfdh_sum;
 
     float Hinew = Hi - f / dfdh;
     if (fabs(Hinew - Hi) < EPSILON_H * Hi){
@@ -338,4 +337,35 @@ void part_print_header(void){
 
   printf("%5s %8s %8s %8s %8s %8s %8s %8s %8s\n",
       "ID", "x", "y", "m", "rho", "u", "v", "p", "h");
+}
+
+
+
+
+
+
+void part_write_smoothing_lengths(int step){
+  /* ------------------------------------------
+   * Write the smoothing lengths of step step 
+   * to a file.
+   * ------------------------------------------ */
+
+  char filename[MAX_FNAME_SIZE] = ""; 
+  char snapnrstr[5] = "";
+
+  strcpy(filename, "smoothing_lengths-");
+  sprintf(snapnrstr, "%04d", step);
+  strcat(filename, snapnrstr);
+  strcat(filename, ".txt");
+
+  log_extra("Writing smoothing lengths to %s", filename);
+
+  FILE *outfilep = fopen(filename, "w");
+
+  for (int i=0; i<pars.npart; i++){
+    part p = particles[i];
+    fprintf(outfilep, "%6d  %12.6e\n", i, p.h);
+  }
+
+  fclose(outfilep);
 }

@@ -168,7 +168,9 @@ Accepted names, their datatypes and default values are:
 |                   |                   |       |                                                                               |
 | `boundary`        | = 0               | `int` | Boundary conditions  0: periodic. 1: transmissive. This sets the boundary conditions for all walls. |
 |                   |                   |       |                                                                               |
-| `nngb`            | = 16.0            |`float`| How many neighbours to use to define particle smoothing length                |
+| `eta`             | = 0.0             |`float`| Resolution eta, defines how many neighbours to use independent of dimensions. Should be the preferrable way of defining the resolution. Either `eta` or `nngb` need to be defined. |
+|                   |                   |       |                                                                               |
+| `nngb`            | = 0.0             |`float`| How many neighbours to use ON AVERAGE to define particle smoothing length. Either `eta` or `nngb` need to be defined. |
 
 
 

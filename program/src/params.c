@@ -8,6 +8,7 @@
 #include <string.h>
 #include <math.h>
 
+#include "kernel.h"
 #include "params.h"
 #include "utils.h"
 
@@ -36,7 +37,8 @@ void params_init_defaults(){
   pars.ccfl = 0.9;
   pars.force_dt = 0;
   pars.boundary = 0;
-  pars.nngb = 16.0;
+  pars.nngb = 0.0;
+  pars.eta = 0.0;
 
   pars.nx = pars.npart;
   pars.dx = BOXLEN / pars.npart;
@@ -149,7 +151,26 @@ void params_init_derived(){
     for (int i = 0; i < nout; i++){
       pars.outputtimes[i] = (i+1) * pars.dt_out;
     }
+  }
 
+
+  /* Compute nngb or eta, which ever is currently missing */
+  /* ---------------------------------------------------- */
+
+  if (pars.eta > 0.){
+#if NDIM == 1
+  pars.nngb = 2 * KERNEL_Hoverh * pars.eta;
+#elif NDIM == 2
+  float temp = KERNEL_Hoverh * pars.eta;
+  pars.nngb = temp * temp * PI;
+#endif
+  
+  } else if (pars.nngb > 0.){
+#if NDIM == 1
+  pars.eta = pars.nngb * 0.5 / KERNEL_Hoverh;
+#elif NDIM == 2
+  pars.eta = sqrtf(pars.nngb / PI) / KERNEL_Hoverh;
+#endif
   }
 
 
@@ -199,6 +220,8 @@ void params_print_log(){
   log_message("tmax:                        %g\n", pars.tmax);
   log_message("nsteps:                      %d\n", pars.nsteps);
   log_message("C_cfl:                       %g\n", pars.ccfl);
+  log_message("Nngb:                        %.3f\n", pars.nngb);
+  log_message("eta:                         %.3f\n", pars.eta);
 
   if (pars.force_dt > 0){
     log_message("Forcing time step size to: %g\n", pars.force_dt);
@@ -263,6 +286,17 @@ void params_check(){
   if (pars.foutput > 0 && pars.dt_out > 0) {
     throw_error("You specified dt_out and foutput > 0. You can't have both, pick one.");
   }
+
+  if (pars.nngb == 0 && pars.eta == 0){
+    throw_error("Neigher nngb nor eta was specified in the parameter file. I need exactly one of these two to work.");
+  }
+
+  if (pars.nngb != 0 && pars.eta != 0){
+    throw_error("You gave me both nngb and eta in the parameter file. I need exactly one of these two to work.");
+  }
+
+  if (pars.nngb < 0) throw_error("You gave me a negative nngb: %f. What am I supposed to do with that?", pars.nngb);
+  if (pars.eta < 0) throw_error("You gave me a negative eta: %f. What am I supposed to do with that?", pars.eta);
 
   if (pars.use_toutfile){
     if (pars.dt_out != 0) throw_error("You gave me a output time file, but also a dt_out. Decide which you want and retry.");

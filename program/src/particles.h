@@ -46,4 +46,7 @@ void part_print_range(int start, int stop);
 void part_print_properties(part* p);
 void part_print_header(void);
 
+/* other particle printing routines */
+void part_write_smoothing_lengths(int step);
+
 #endif

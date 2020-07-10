@@ -8,17 +8,19 @@ nstep_log = 0		/* how many steps to skip when writing log messages to screen */
 
 
 /* simulation related */
-nx = 100                /* number of cells in each dimension if two-state IC is used. */
-ccfl = 0.7		/* Courant factor */
-nsteps = 11		/* Number of steps to run for. Will stop the run even if tmax isn't reached. */
-tmax = 0.1		/* end time for simulation in arbitrary units. Will stop the run even if nsteps isn't reached. */
-force_dt = 0		/* force a time step size. If a smaller time step is required, the sim will stop. */
-boundary = 0		/* boundary conditions. 0: periodoc; 1: reflective; 2: transmissive */
+nx = 100            /* number of cells in each dimension if two-state IC is used. */
+ccfl = 0.2		    /* Courant factor */
+nsteps = 11		    /* Number of steps to run for. Will stop the run even if tmax isn't reached. */
+tmax = 0.1		    /* end time for simulation in arbitrary units. Will stop the run even if nsteps isn't reached. */
+force_dt = 0	    /* force a time step size. If a smaller time step is required, the sim will stop. */
+boundary = 0	    /* boundary conditions. 0: periodoc; 1: transmissive */
+eta = 1.2348        /* resolution eta. You need to give either eta or nngb, but not both. */
+// nngb = 15.143    /* number of neighbours to use. eta should be the preferred way of specifying resolution. */
 
 
 /* output related */
-foutput = 0		/* output frequency in number of steps. 0: write only IC and end result.*/
-dt_out = 0		/* after what time interval to drop an output. 0: write only IC and end result. */
+foutput = 0		    /* output frequency in number of steps. 0: write only IC and end result.*/
+dt_out = 0		    /* after what time interval to drop an output. 0: write only IC and end result. */
 toutfile = f.txt	/* file for specific output times. !! WILL OVERWRITE FOUTPUT AND DT_OUT !!*/
 basename = output	/* basename for output files. !! REMOVE LINE FOR DEFAULT GENERATED FILE NAME !!*/
 

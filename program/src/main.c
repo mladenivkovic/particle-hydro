@@ -79,6 +79,7 @@ int main(int argc, char* argv[]){
 
   cell_build_grid();
   part_get_smoothing_lengths();
+  part_write_smoothing_lengths(0);
   free_part_arrays(); /* TODO: don't forget this! */
   cell_destroy_grid(); /* TODO: don't forget this! */
 
