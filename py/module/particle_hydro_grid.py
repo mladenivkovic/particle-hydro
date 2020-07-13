@@ -7,6 +7,7 @@
 
 
 import numpy as np
+import copy
 
 min_neighbour_fact_for_cells = 2 # require minimum of min_neighbour_fact_for_cells * nngb particles in cells for h iteration
 ITER_MAX = 100 # max number of iterations to do
@@ -23,12 +24,15 @@ def compute_smoothing_lengths(x, m, eta, kernel='cubic spline', ndim=2, periodic
         x:      particle coordinates
         m:      particle masses
         eta:    "resolution", that defines number of neighbours
+        kernel: which kernel to use
         ndim:   number of dimensions
         periodic: whether the gig is periodic
 
     returns:
         h:      1D numpy array containing particle smoothing lengths
         rho:    1D numpy array containing particle densities computed with computed smoothing lengths
+        grid:   list of cells representing the particle grid
+        neighbours: list of arrays containing neighbour particle indices for each particle
     """
 
     from particle_hydro_kernel import get_kernel_data
@@ -40,6 +44,7 @@ def compute_smoothing_lengths(x, m, eta, kernel='cubic spline', ndim=2, periodic
 
     h = np.zeros(nparttot, dtype=np.float)
     rho = np.zeros(nparttot, dtype=np.float)
+    neighbours = [[] for i in range(nparttot)]
 
     kernel_func, kernel_derivative, kernel_gamma = get_kernel_data(kernel, ndim)
 
@@ -47,6 +52,9 @@ def compute_smoothing_lengths(x, m, eta, kernel='cubic spline', ndim=2, periodic
         nngb = 2 * eta * kernel_gamma
     elif ndim == 2:
         nngb = np.pi * (eta * kernel_gamma)**2
+
+    HMAX = 0.5
+    HMIN = nparttot**(-1./ndim) * 1e-1
 
     # get a rounded up integer to use in arrays
     nngb = int(nngb + 0.5)
@@ -71,7 +79,6 @@ def compute_smoothing_lengths(x, m, eta, kernel='cubic spline', ndim=2, periodic
                     r[r>0.5] -= 1
                     r[r<-0.5] += 1
                 r = np.abs(r)
-                mpow = m[p]
             elif ndim == 2:
                 dx = xn[:,0] - x[p,0]
                 if (periodic):
@@ -82,12 +89,11 @@ def compute_smoothing_lengths(x, m, eta, kernel='cubic spline', ndim=2, periodic
                     dy[dy>0.5] -= 1
                     dy[dy<-0.5] += 1
                 r = np.sqrt(dx**2 + dy**2)
-                mpow = np.sqrt(m[p])
     
             sortind = np.argsort(r)
             r = r[sortind]
             msort = mn[sortind]
-        
+            nbrsort = np.array(allparts)[sortind]
 
             # prepare iterations
             niter = 0
@@ -96,29 +102,39 @@ def compute_smoothing_lengths(x, m, eta, kernel='cubic spline', ndim=2, periodic
             # start iterating
             while True:
                 niter += 1
-                rhoi = 0.
+                ni = 0.
                 dfdh_sum = 0.
 
                 # do neighbour loop
                 i = 0
-                while r[i] <= Hi and i < len(r):
+                while r[i] <= Hi:
                     W = kernel_func(r[i], Hi)
                     dWdr = kernel_derivative(r[i], Hi)
-                    rhoi += msort[i] * W
-                    dfdh_sum += msort[i] * (W + r[i]/ndim * dWdr)
+                    ni += W
+                    dfdh_sum += (ndim * W + r[i] * dWdr)
                     i += 1
+                    if i == len(r): break
+
+                # store neighbours
+                neighbours_p = copy.copy(nbrsort[1:i+1]) # index 0 is particle itself, skip that
 
 
                 # compute f and df/dh
                 hi = Hi / kernel_gamma
-                rhopow = rhoi ** (-1. - 1./ndim)
-                f = hi - eta * mpow * rhopow * rhoi
-                dfdh = 1. - eta / hi * mpow * rhopow * dfdh_sum
+                f = hi**ndim * ni - eta**ndim
+                dfdh = hi**(ndim - 1) *(ndim * ni - dfdh_sum)
 
                 Hinew = Hi - f / dfdh
+                # exception handling...
+                if Hinew <= 0:
+                    Hinew *= 1.1
+                if Hinew > HMAX:
+                    Hinew = HMAX
+                if Hinew < HMIN:
+                    Hinew = HMIN
                 if abs(Hinew - Hi) < EPSILON * Hi:
-                    h[p] = kernel_gamma / Hinew
-                    rho[p] = rhoi
+                    h[p] = Hinew / kernel_gamma
+                    neighbours[p] = neighbours_p
                     break
                 else:
                     Hi = Hinew
@@ -126,6 +142,19 @@ def compute_smoothing_lengths(x, m, eta, kernel='cubic spline', ndim=2, periodic
                 if niter == ITER_MAX:
                     print("Reached max number of iterations for smoothing length. Current convergence rate:", abs(Hinew - Hi)/Hi)
                     break
+
+            # compute density now
+            rhoi = 0.
+            i = 0
+            while r[i] <= Hi:
+                W = kernel_func(r[i], Hi)
+                rhoi += msort[i] * W
+                i += 1
+                if i == len(r): break
+            rho[p] = rhoi
+
+
+    return h, rho, grid, neighbours
 
 
 
@@ -203,29 +232,33 @@ class cell():
             i, j = grid_ij_from_ind(self.ind, ncells)
             
             left = i - 1
-            if left >= 0: add_left = True
-            if left < 0:
+            if left >= 0: 
+                add_left = True
+            else:
                 if periodic:
                     left += ncells
                     add_left = True
 
             right = i + 1
-            if right < ncells - 1: add_right = True
-            if right >= ncells:
+            if right <= ncells - 1: 
+                add_right = True
+            else:
                 if periodic:
                     right -= ncells
                     add_right = True
             
             lower = j - 1
-            if lower >= 0: add_lower = True
-            if lower < 0:
+            if lower >= 0: 
+                add_lower = True
+            else:
                 if periodic:
                     lower += ncells
                     add_lower = True
 
             upper = j + 1
-            if upper < ncells - 1: add_upper = True
-            if upper >= ncells:
+            if upper <= ncells - 1: 
+                add_upper = True
+            else:
                 if periodic:
                     upper -= ncells
                     add_upper = True
@@ -248,7 +281,7 @@ class cell():
             if add_lower:
                 neighs.append(grid_ind_from_ij(i, lower, ncells))
             if add_upper:
-                neighs.append(grid_ind_from_ij(j, upper, ncells))
+                neighs.append(grid_ind_from_ij(i, upper, ncells))
 
 
 
@@ -260,7 +293,7 @@ class cell():
 
 
 
-def build_grid(x, m, eta, kernel='cubic spline', ndim=2, periodic=True):
+def build_grid(x, m, eta, kernel='cubic spline', ndim=2, periodic=True, verbose=True):
     """
     Build a grid and distribute all particles in it.
 
@@ -269,6 +302,7 @@ def build_grid(x, m, eta, kernel='cubic spline', ndim=2, periodic=True):
         eta:    "resolution", that defines number of neighbours
         ndim:   number of dimensions
         periodic: whether the gig is periodic
+        verbose: write stats to screen when done
 
     returns:
         grid:   list of cell objects representing the grid, with
@@ -288,31 +322,6 @@ def build_grid(x, m, eta, kernel='cubic spline', ndim=2, periodic=True):
         # get a first estimate of number of cells
         ncells = int(nparttot / (1.5 *nngb))
 
-        while True:
-            # build grid
-            grid = [cell(i) for i in range(ncells)]
-
-            distribute_particles_on_grid(x, grid, ncells, ndim = ndim)
-
-            # check whether we have enough neighbours everywhere 
-            repeat = False
-            for c in grid:
-                nbrs = c.get_neighbours(ncells, ndim, periodic=periodic)
-                nbparts = 0
-                for n in nbrs:
-                    nbparts += grid[n].npart
-
-                if nbparts <= 2 * nngb:
-                    repeat = True
-                    ncells -= 1
-                    print("got too few neighbours in cell", c.ind, "repeating")
-                    break
-
-            if not repeat:
-                break
-
-
-
     elif ndim == 2:
         # find requested number of neighbours
         nngb = np.pi * (eta * kernel_gamma_2D[kernel])**2
@@ -320,44 +329,45 @@ def build_grid(x, m, eta, kernel='cubic spline', ndim=2, periodic=True):
         # get a first estimate of number of cells
         ncells = int(np.sqrt(nparttot / (1.5 *nngb)))
 
-        while True:
-            # build grid
-            grid = [cell(i) for i in range(ncells**2)]
 
-            distribute_particles_on_grid(x, grid, ncells, ndim = ndim)
+    repeat = True
+    while repeat:
+        # build grid
+        grid = [cell(i) for i in range(ncells**ndim)]
 
-            # check whether we have enough neighbours everywhere 
-            repeat = False
-            for c in grid:
-                nbrs = c.get_neighbours(ncells, ndim, periodic=periodic)
-                nbparts = 0
-                for n in nbrs:
-                    nbparts += grid[n].npart
+        distribute_particles_on_grid(x, grid, ncells, ndim = ndim)
 
-                if nbparts <= min_neighbour_fact_for_cells * nngb:
-                    repeat = True
-                    ncells -= 1
-                    print("got too few neighbours in cell", c.ind, 
-                            ": particles found:", nbparts, "want:",
-                            min_neighbour_fact_for_cells*nngb, "repeating")
-                    break
+        # check whether we have enough neighbours everywhere 
+        for c in grid:
+            nbrs = c.get_neighbours(ncells, ndim, periodic=periodic)
+            nbparts = 0
+            for n in nbrs:
+                nbparts += grid[n].npart
 
-            if not repeat:
+            if nbparts <= min_neighbour_fact_for_cells * nngb:
+                ncells -= 1
+                print("got too few neighbours in cell", c.ind, 
+                        ": particles found:", nbparts, "want:",
+                        min_neighbour_fact_for_cells*nngb, "repeating")
                 break
+        else:
+            repeat = False
 
 
-    # print some stuff :)
-    gridpart = [g.npart for g in grid]
-    ngridpart = sum(gridpart)
-    ngridmin = min(gridpart)
-    ngridmax = max(gridpart)
-    ngridmean = ngridpart/ncells**ndim
-    print("finished grid building. Ended up with ncells =", ncells)
-    print("Grid particle stats:")
-    print("    total:", ngridpart, "/", nparttot)
-    print("      min:", ngridmin)
-    print("      max:", ngridmax)
-    print("  average:", ngridmean)
+
+    if verbose:
+        # print some stuff :)
+        gridpart = [g.npart for g in grid]
+        ngridpart = sum(gridpart)
+        ngridmin = min(gridpart)
+        ngridmax = max(gridpart)
+        ngridmean = ngridpart/ncells**ndim
+        print("finished grid building. Ended up with ncells =", ncells)
+        print("Grid particle stats:")
+        print("    total:", ngridpart, "/", nparttot)
+        print("      min:", ngridmin)
+        print("      max:", ngridmax)
+        print("  average:", ngridmean)
 
 
     return grid, ncells
