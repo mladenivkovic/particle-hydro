@@ -5,7 +5,7 @@
 
 
 %==================================================================================
-\subsection{Computing the Smoothing Lenghts}
+\subsection{Computing the Smoothing Lengths}
 %==================================================================================
 
 
@@ -41,9 +41,14 @@ until we reach some tolerance $\varepsilon$:
 
 
 In our scenario, we have
+\begin{align*}
+	h_i &= \eta \left(\frac{m_i}{\rho_i}\right) ^ {1/\nu} \\
+	\Rightarrow f 
+		&= f(h_i) = h_i - \eta \left(\frac{m_i}{\rho_i}\right) ^ {1/\nu} = 0\\
+\end{align*}
+and we can use the root finding algorithm.
+All we need is $\frac{\de f}{\de h_i}$ :
 \begin{align}
-	f 
-		&= f(h_i) = h_i - \eta \left(\frac{m_i}{\rho_i}\right) ^ {1/\nu}\\
 	\frac{\de f}{\de h_i} 
 		&= 1 - \eta m_i ^ {1/\nu} \ \frac{\de }{\de h_i} \rho_i ^ {-1/\nu} 
 			\nonumber \\
@@ -57,8 +62,29 @@ In our scenario, we have
 \end{align}
 
 
+However, a perhaps better version can be obtained via
+
+\begin{align}
+ 	h_i 
+ 		&= \eta n^{-\nu} \nonumber \\
+ 	\text{Then} 
+ 	\quad n h_i^\nu 
+ 		&= \eta^\nu \nonumber \\
+	\text{Giving us } 
+	\quad f 
+		&= f(h_i) = n h_i^\nu - \eta^\nu  = h_i^\nu  \sum_{j} W(|\R_i - \R_j|, h_i) - \eta^\nu = 0\\
+	\frac{\de f}{\de h_i} 
+		&=  \frac{\de }{\de h_i} \left( h_i^{\nu} \sum_{j} W(|\R_i - \R_j|, h_i) \right)
+			\nonumber \\
+		&= \nu h_i^{\nu - 1} \sum_{j} W(|\R_i - \R_j|, h_i) + h_i^\nu \sum_{j} \frac{\de }{\de h_i} W(|\R_i - \R_j|, h_i)
+			\nonumber \\
+		&= \nu h_i^{\nu - 1}\sum_{j} W(|\R_i - \R_j|, h_i) - h_i^\nu \sum_{j}\frac{1}{h_i} \left( \nu W(\x_i) + r_{ij}  \DELDR{W(\x_i)}\right)
+\end{align}
 
 
+The main advantage is that instead of the mass density, only the number density $n = \oldsum_{j} W(|\R_i - \R_j|, h_i)$ is used, and therefore the determination of the smoothing length (and with it the determination of the resolution) only depends on particle positions and no other fluid properties.
+This doesn't change much for simulations where all SPH particles have equal masses, but in finite volume meshless methods, where masses are exchanged via fluxes, the smoothing lengths will be weighted by the variable particle masses.
+This is also the implemented version.
 
 
 
@@ -71,3 +97,9 @@ In our scenario, we have
 %==================================================================================
 
 Add discussion that is in \cite{priceSmoothedParticleHydrodynamics2012a}.
+
+
+
+
+
+

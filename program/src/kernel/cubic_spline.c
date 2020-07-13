@@ -31,12 +31,9 @@ float kernel_W(float r, float h){
     w -= 4 * temp * temp * temp;
   } 
   
-#if NDIM == 1
-  w /= H;
-#elif NDIM == 2
-  w /= H * H;
-#endif
+  w /= to_ndim_power(H);
   w *= KERNEL_NORM;
+
   return(w);
 }
 
@@ -66,12 +63,9 @@ float kernel_dWdr(float r, float h){
     dwdr += 12 * temp * temp;
   } 
   
-  /* additional 1/h: dw/dr = dw/dq dq/dr = dw/dq 1/h */
-#if NDIM == 1
-  dwdr /= H * H;
-#elif NDIM == 2
-  dwdr /= H * H * H;
-#endif
+  /* additional 1/H: dw/dr = dw/dq dq/dr = dw/dq 1/H */
+  dwdr /= to_ndim_power(H)*H;
   dwdr *= KERNEL_NORM;
+
   return(dwdr);
 }

@@ -176,8 +176,8 @@ void part_get_smoothing_lengths(){
 void part_compute_h(part* p, float* r, int* neigh, int nneigh){
   /* ----------------------------------------------------------------
    * Iteratively compute the smoothing length for given particle p.
-   * r:   distances to all neighbouring particles
-   * neigh: array of neighbour particle indices
+   * r:      distances to all neighbouring particles
+   * neigh:  array of neighbour particle indices
    * nneigh: number of elements in neigh array
    * ---------------------------------------------------------------- */
 
@@ -188,44 +188,39 @@ void part_compute_h(part* p, float* r, int* neigh, int nneigh){
   }
 
 
+
   /* sort neighcpy and r array by increasing r */
   quicksort_float_int_follower(r, neighcpy, nneigh);
 
 
   /* take initial guess for compact support radius for this particle */
   float Hi = r[(int) (pars.nngb + 0.5)];
-  float rhoi; /* density of this particle */
+
+  float eta_to_ndim = to_ndim_power(pars.eta);
 
   int niter = 0;
-
-#if NDIM == 1
-  float mipower = p->m; /* m_i ^ {1 / \nu} */
-#elif NDIM == 2
-  float mipower = sqrtf(p->m); /* m_i ^ {1 / \nu} */
-#endif
-
 
   while (niter < ITER_MAX_H){
     niter += 1;
 
-    rhoi = 0.;
-    float dfdh_sum = 0; /* the summation part in df/dh */
     float hi = kernel_hfromH(Hi);
+    float ni = 0.;           /* number density of particle */
+    float dfdh_dWdrsum = 0.; /* kernel sum for df/dh that includes the dW/dr terms */
 
     /* do neighbour loop */
     for (int i = 0; r[i] <= Hi; i++){
-      part pj = particles[neighcpy[i]];
       float W = kernel_W(r[i], hi);
       float dWdr = kernel_dWdr(r[i], hi);
-      rhoi += pj.m * W;
-      dfdh_sum += pj.m * ( W + r[i]/NDIM *dWdr );
+      ni += W;
+      dfdh_dWdrsum += ( NDIM * W + r[i] * dWdr );
       if (i == nneigh - 1) break; /* safety measure */
     }
 
     /* now compute f and df/dh */
-    float rhopower = pow(rhoi, -1. - 1./NDIM); /* rho_i ^{-1 - 1/\nu} */
-    float f = hi - pars.eta * mipower * rhopower * rhoi;
-    float dfdh = 1. - pars.eta / hi * mipower * rhopower * dfdh_sum;
+    float hi_to_ndim = to_ndim_power(hi);
+    float hi_to_ndim_minus_one = hi_to_ndim / hi;
+    float f = hi_to_ndim * ni - eta_to_ndim;
+    float dfdh = NDIM * hi_to_ndim_minus_one * ni - hi_to_ndim_minus_one * dfdh_dWdrsum;
 
     float Hinew = Hi - f / dfdh;
     if (fabs(Hinew - Hi) < EPSILON_H * Hi){
@@ -241,9 +236,19 @@ void part_compute_h(part* p, float* r, int* neigh, int nneigh){
     throw_error("reached max number of iterations for smoothing length of particle %d", p->id);
   } 
 
+  /* once you're done iterating, get density of the particle */
+  float rhoi = 0.; /* density of this particle */
+  float hi = kernel_hfromH(Hi);
+
+  /* do neighbour loop */
+  for (int i = 0; r[i] <= Hi; i++){
+    part pj = particles[neighcpy[i]];
+    rhoi += pj.m * kernel_W(r[i], hi);
+    if (i == nneigh - 1) break; /* safety measure */
+  }
+
 
   /* store results! */
-  float hi = kernel_hfromH(Hi);
   p->h = hi;
   p->prim.rho = rhoi;
   

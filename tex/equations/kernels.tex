@@ -160,6 +160,7 @@ The radial derivative of the kernel along the line between particles $i$ and $j$
 	\frac{\del}{\del r_{ij}} W_j (\x_i) 	
 			&= \frac{\del}{\del r_{ij}} \left( \frac{C}{H_i^\nu} w ( q_{ij} )	\right)	\nonumber \\[.5em]
 			&= \frac{C}{H_i^\nu} \frac{\del w(q_{ij})}{\del q_{ij}} \frac{\del q_{ij}(r_{ij})}{\del r_{ij}} 	\nonumber \\[.5em]
+			&= \frac{C}{H_i^\nu} \frac{\del w(q_{ij})}{\del q_{ij}} \frac{1}{H_i} 	\nonumber \\[.5em]
 			&= \frac{C}{H_i^{\nu + 1}} \frac{\del w(q_{ij})}{\del q_{ij}}  \label{eq:kernel-dWdr-with-indices}
 \end{align}
 or, neglecting particle indices:
@@ -191,7 +192,7 @@ The derivative with respect to the smoothing length is given by
 				+\frac{C}{H_i^\nu} \frac{\del w(q_{ij})}{\del q_{ij}} \left( - \Gamma \frac{r_{ij}}{H_i^2} \right) 	\nonumber\\[.5em]
 			&= -\frac{\nu C \Gamma}{H_i^{\nu + 1}} w(q_{ij})
 				-\frac{\Gamma C}{H_i^{\nu + 2}} \frac{\del w(q_{ij})}{\del q_{ij}} r_{ij} 	\nonumber\\[.5em]
-			&= - \frac{\nu \Gamma}{H_i} W(\x_i) - \frac{\Gamma r_{ij}}{H_i} \DELDR{W(\x_i)} \nonumber \\[.5em]
+			&= - \frac{\nu \Gamma}{H_i} W(\x_i) - \frac{\Gamma}{H_i} \DELDR{W(\x_i)}  r_{ij} \nonumber \\[.5em]
 			&= - \frac{\Gamma}{H_i} \left( \nu W(\x_i) + r_{ij}  \DELDR{W(\x_i)} \right) \nonumber \\[.5em]
 			&= - \frac{1}{h_i} \left( \nu W(\x_i) + r_{ij}  \DELDR{W(\x_i)} \right) 
 			 \label{eq:kernel-dWdh}
@@ -207,9 +208,9 @@ The derivative with respect to the smoothing length is given by
 In summary:
 \begin{align*}
 	\deldr W (\x) 
-			&= \frac{C}{h_i^{\nu + 1}} \frac{\del w(q)}{\del q} \\[.5em]
+			&= \frac{C}{H_i^{\nu + 1}} \frac{\del w(q)}{\del q} \\[.5em]
 	\deldx W_j(\x_i) 
-			&= \frac{C}{h_i^{\nu + 1}} \frac{\del w(q_{ij})}{\del q_{ij}}  \frac{\x_i - \x_j}{r_{ij}}\\[.5em]
+			&= \frac{C}{H_i^{\nu + 1}} \frac{\del w(q_{ij})}{\del q_{ij}}  \frac{\x_i - \x_j}{r_{ij}}\\[.5em]
  	\frac{\del}{\del h} W(\x) 
  			&= - \frac{1}{h} \left( \nu W(\x) + r_{ij}  \DELDR{W(\x)} \right) \\[.5em]
 \end{align*}

@@ -221,3 +221,16 @@ void printbool(int boolean){
     printf("false");
   }
 }
+
+
+
+float to_ndim_power(float x){
+  /* ----------------------------------
+   * Return x^ndim
+   * ---------------------------------- */
+#if NDIM == 1
+  return(x);
+#elif NDIM == 2
+  return(x*x);
+#endif
+}

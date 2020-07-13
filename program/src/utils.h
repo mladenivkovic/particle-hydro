@@ -20,5 +20,6 @@ void debugmessage(const char *format, ...);
 void log_extra(const char *format, ...);
 void throw_error(const char *format, ...);
 void printbool(int boolean);
+float to_ndim_power(float x);
 
 #endif
