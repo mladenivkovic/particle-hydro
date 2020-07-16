@@ -5,20 +5,26 @@
 # Kernel related stuffs
 #------------------------------------
 
+import numpy as np
+
 
 
 def W_cubic_spline(r, H, ndim = 2):
     """
     Cubic spline kernel.
     """
+    if type(r) != np.ndarray:
+        r = np.array(r)
 
     q = r / H
-    W = 0.
+    W = np.zeros(q.shape)
 
-    if q <= 1.:
-        W += (1. - q)**3
-    if q <= 0.5:
-        W -= 4*(0.5 - q)**3
+    W[q<=1] += (1. - q[q<=1])**3
+    W[q<=0.5] -= 4*(0.5 - q[q<0.5])**3
+    #  if q <= 1.:
+    #      W += (1. - q)**3
+    #  if q <= 0.5:
+    #      W -= 4*(0.5 - q)**3
 
     if ndim == 1:
         W /= H
@@ -37,23 +43,28 @@ def dWdr_cubic_spline(r, H, ndim = 2):
     Cubic spline kernel derivative
     """
 
-    q = r / H
-    W = 0.
+    if type(r) != np.ndarray:
+        r = np.array(r)
 
-    if q <= 1.:
-        W -= 3 * (1. - q)**2
-    if q <= 0.5:
-        W += 12*(0.5 - q)**2
+    q = r / H
+    dW = np.zeros(q.shape)
+
+    dW[q<=1] -= 3 * (1. - q[q<=1])**2
+    dW[q<=0.5] += 12 * (0.5 - q[q<=0.5])**2
+    #  if q <= 1.:
+    #      W -= 3 * (1. - q)**2
+    #  if q <= 0.5:
+    #      W += 12*(0.5 - q)**2
 
 
     if ndim == 1:
-        W /= H**2
-        W *= kernel_norm_1D['cubic spline']
+        dW /= H**2
+        dW *= kernel_norm_1D['cubic spline']
     elif ndim == 2:
-        W /= H**3
-        W *= kernel_norm_2D['cubic spline']
+        dW /= H**3
+        dW *= kernel_norm_2D['cubic spline']
 
-    return W
+    return dW
 
 
 
