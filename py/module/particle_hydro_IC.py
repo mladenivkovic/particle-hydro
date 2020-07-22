@@ -7,6 +7,7 @@
 
 import numpy as np
 from matplotlib import pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 from scipy import stats
 
 from particle_hydro_grid import compute_smoothing_lengths, build_grid
@@ -17,10 +18,13 @@ from particle_hydro_kernel import get_kernel_data
 IC_ITER_MAX = 2000                  # max numbers of iterations for generating IC conditions
 IC_CONVERGENCE_THRESHOLD = 1e-3     # if enough particles are displaced by distance below threshold * mean interparticle distance, stop iterating.
 IC_TOLERANCE_PART = 1e-2            # tolerance for not converged particle fraction: this fraction of particles can be displaced with distances > threshold
-IC_DISPLACEMENT_THRESHOLD = 1e-2    # iteration halt criterion: Don't stop until every particle is displaced by distance < threshold * mean interparticle distance
+IC_DISPLACEMENT_THRESHOLD = 1e-2    # Don't even thing about stopping until every particle is displaced by distance < threshold * mean interparticle distance.
+                                    # Only after every particle has moved with distance smaller than this threshold, the IC_CONVERGENCE_THRESHOLD is
+                                    # taken into account.
 IC_REDISTRIBUTE_AT_ITERATION = 10   # redistribute a handful of particles every IC_REDISTRIBUTE_AT_ITERATION iteration
 IC_DELTA_REDUCTION_FACTOR = 0.97    # reduce normalization constant for particle motion by this factor after every iteration
-IC_DELTA_MIN = 1e-2                 # minimal normalization constant for particle motion in units of mean interparticle distance
+IC_DELTA_INIT = 0.1                 # initial normalization constant for particle motion in units of mean interparticle distance
+IC_DELTA_MIN = 1e-4                 # minimal normalization constant for particle motion in units of mean interparticle distance
 IC_REDISTRIBUTE_FRACTION = 0.01     # fraction of particles to redistribute when doing so
 IC_NO_REDISTRIBUTION_AFTER = 200    # don't redistribute particles after this iteration
 IC_PLOT_AT_REDISTRIBUTION = True    # create and store a plot of the current situation before redistributing?
@@ -36,13 +40,13 @@ def IC_generation_set_params(
             tolerance_part              = IC_TOLERANCE_PART,
             displacement_threshold      = IC_DISPLACEMENT_THRESHOLD,
             redistribute_at_iteration   = IC_REDISTRIBUTE_AT_ITERATION,
+            delta_init                  = IC_DELTA_INIT,
             delta_reduction_factor      = IC_DELTA_REDUCTION_FACTOR,
             delta_min                   = IC_DELTA_MIN,
             redistribute_fraction       = IC_REDISTRIBUTE_FRACTION,
             no_redistribution_after     = IC_NO_REDISTRIBUTION_AFTER,
             plot_at_redistribution      = IC_PLOT_AT_REDISTRIBUTION
         ):
-    # TODO: dox
     """
     Change the global IC generation iteration parameters.
 
@@ -59,6 +63,8 @@ def IC_generation_set_params(
                                                 distance
         <float> redistribute_at_iteration   redistribute a handful of particles every 
                                                 `redistribute_at_iteration` iteration
+        <float> delta_init                  initial normalization constant for particle motion in 
+                                                units of mean interparticle distance
         <float> delta_reduction_factor      reduce normalization constant for particle motion by this 
                                                 factor after every iteration
         <float> delta_min                   minimal normalization constant for particle motion in units 
@@ -77,6 +83,7 @@ def IC_generation_set_params(
     global IC_TOLERANCE_PART
     global IC_DISPLACEMENT_THRESHOLD
     global IC_REDISTRIBUTE_AT_ITERATION
+    global IC_DELTA_INIT
     global IC_DELTA_REDUCTION_FACTOR
     global IC_DELTA_MIN
     global IC_REDISTRIBUTE_FRACTION
@@ -88,6 +95,7 @@ def IC_generation_set_params(
     IC_TOLERANCE_PART = tolerance_part
     IC_DISPLACEMENT_THRESHOLD = displacement_threshold
     IC_REDISTRIBUTE_AT_ITERATION = redistribute_at_iteration
+    IC_DELTA_INIT = delta_init
     IC_DELTA_REDUCTION_FACTOR = delta_reduction_factor
     IC_DELTA_MIN = delta_min
     IC_REDISTRIBUTE_FRACTION = redistribute_fraction
@@ -106,7 +114,7 @@ def IC_uniform_coordinates(nx, ndim = 2, periodic = True):
     periodic:   whether we have periodic boundary conditions or not
 
     returns:
-        x: np.array((nx**ndim, ndim-1), dtype=float) of coordinates
+        x: np.array((nx**ndim, ndim), dtype=float) of coordinates
     """
 
     dxhalf = 0.5/nx
@@ -137,7 +145,7 @@ def IC_perturbed_coordinates(nx, ndim = 2, periodic = True):
     periodic:   whether we have periodic boundary conditions or not
 
     returns:
-        x: np.array((nx**ndim, ndim-1), dtype=float) of coordinates
+        x: np.array((nx**ndim, ndim), dtype=float) of coordinates
     """
 
     x = IC_uniform_coordinates(nx, ndim=ndim, periodic=periodic)
@@ -154,6 +162,55 @@ def IC_perturbed_coordinates(nx, ndim = 2, periodic = True):
             x[i][1] += sign * np.random.random() * maxdelta
 
     return x
+
+
+
+
+
+
+def IC_sample_coordinates(nx, rho_anal, rho_max=None, ndim = 2):
+    """
+    Randomly sample the density to get initial coordinates    
+
+    parameters:
+        nx:         number of particles in each dimension
+        rho_anal:   function rho_anal(x, ndim). Should return a float of the analytical function rho(x)
+                    for given coordinates x
+        rho_max:    peak value of the density. If none, an approximate value will be found.
+        ndim:       number of dimensions
+
+    returns:
+        x: np.array((nx**ndim, ndim), dtype=float) of coordinates
+    """
+
+    print("Sampling particle coordinates.")
+
+    npart = nx**ndim
+    x = np.empty((npart, ndim), dtype=np.float)
+    
+    if rho_max is None:
+        nc = max(1000, nx)
+        xc = IC_uniform_coordinates(nc, ndim=ndim)
+        rho_max = rho_anal(xc).max()
+
+    printstep = int(0.01 * npart / 1000) * 1000
+    printstep = max(printstep, 1000)
+
+    keep = 0
+    while keep < npart:
+        
+        xr = np.random.uniform(size=(1, ndim))
+
+        if np.random.uniform() <= rho_anal(xr)/rho_max:
+            x[keep] = xr
+            keep += 1
+            if keep % printstep == 0:
+                print("{0:8d} / {1:8d}".format(keep, npart))
+
+
+    return x
+
+
 
 
 
@@ -209,8 +266,9 @@ def generate_IC_for_given_density(rho_anal, nx, ndim, eta, x=None, m=None, kerne
 
     if x is None:
         # generate positions
-        x = IC_perturbed_coordinates(nx, ndim=ndim, periodic=periodic)
         #  x = IC_uniform_coordinates(nx, ndim=ndim, periodic=periodic)
+        #  x = IC_perturbed_coordinates(nx, ndim=ndim, periodic=periodic)
+        x = IC_sample_coordinates(nx, rho_anal, ndim=ndim)
 
     npart = x.shape[0]
 
@@ -239,10 +297,15 @@ def generate_IC_for_given_density(rho_anal, nx, ndim, eta, x=None, m=None, kerne
         Nngb = np.pi * (kernel_gamma * eta)**2
 
     MID = 1./npart**(1./ndim) # mean interparticle distance
-    delta_r_norm = 0.5 * MID
+    delta_r_norm = IC_DELTA_INIT * MID
     delta_r_min = IC_DELTA_MIN * MID
 
 
+    if IC_PLOT_AT_REDISTRIBUTION:
+        # drop a first plot
+        h, rho, _, ncells_proper, _ = compute_smoothing_lengths(x, m, eta, 
+                    kernel=kernel, ndim=ndim, periodic=periodic, ncells=None)
+        IC_plot_current_situation(True, 0, x, rho, rho_anal, ndim=ndim)
 
 
     # start iteration loop
@@ -393,6 +456,12 @@ def generate_IC_for_given_density(rho_anal, nx, ndim, eta, x=None, m=None, kerne
             break
 
 
+    print("Happy?")
+    h, rho, _, ncells_proper, _ = compute_smoothing_lengths(x, m, eta, 
+                kernel=kernel, ndim=ndim, periodic=periodic, ncells=ncells_proper)
+    IC_plot_current_situation(False, iteration, x, rho, rho_anal, ndim=ndim)
+
+
     return x, m, rho, h
 
 
@@ -402,7 +471,6 @@ def generate_IC_for_given_density(rho_anal, nx, ndim, eta, x=None, m=None, kerne
 
 
 def redistribute_particles(x, h, rho, rhoA, iteration, kernel='cubic spline', ndim = 2, periodic = True):
-
     """
     Every few steps, manually displace underdense particles into areas of overdense particles
 
@@ -534,6 +602,10 @@ def IC_plot_current_situation(save, iteration, x, rho, rho_anal, ndim=2):
         ndim:       How many dimensions we're working with
         """
 
+    if x.shape[0] > 5000:
+        marker = ','
+    else:
+        marker = '.'
 
     if ndim == 1:
         fig = plt.figure(figsize=(6, 6), dpi=200)
@@ -548,12 +620,26 @@ def IC_plot_current_situation(save, iteration, x, rho, rho_anal, ndim=2):
     elif ndim == 2:
         fig = plt.figure(figsize=(18,6), dpi=200)
 
+        # get rho map
+        #  X = np.linspace(0, 1, 20)
+        #  Y = np.linspace(0, 1, 20)
+        #  X, Y = np.meshgrid(X, Y)
+        #  xmap = np.stack((X.ravel(), Y.ravel()), axis=1)
+        #  rhomap = rho_anal(xmap).reshape(20,20)
+        #
+        #  ax1 = fig.add_subplot(1,1,1, projection='3d')
+        #  im1 = ax1.plot_surface(X, Y, rhomap, color='red', alpha=0.2)
+        #  ax1.scatter(x[:,0], x[:,1], rho, c='blue', depthshade=True, lw=0, s=2)
+        #  plt.show()
+
+
         ax1 = fig.add_subplot(131, aspect='equal')
         ax2 = fig.add_subplot(132, )
         ax3 = fig.add_subplot(133, )
 
         # x - y scatterplot
-        ax1.scatter(x[:,0], x[:,1], s=1, alpha=0.5, c='k')
+
+        ax1.scatter(x[:,0], x[:,1], s=1, alpha=0.5, c='k', marker=marker)
         ax1.set_xlabel("x")
         ax1.set_ylabel("y")
 
@@ -563,11 +649,16 @@ def IC_plot_current_situation(save, iteration, x, rho, rho_anal, ndim=2):
         rho_std = np.sqrt(rho2mean - rho_mean**2)
 
         r = 0.5 * (edges[:-1] + edges[1:])
-        ax2.errorbar(r, rho_mean, yerr=rho_std, label='IC')
+        ax2.errorbar(r, rho_mean, yerr=rho_std, label='average all ptcls', lw=1)
 
-        r = np.linspace(0, 1, 100)
-        ax2.plot(r, rho_anal(r), label='analytical')
-        ax2.scatter(x[:,0], rho, s=1, alpha=0.5, c='k')
+        xa = np.linspace(0, 1, 100)
+        ya = np.ones(xa.shape) * 0.5
+        XA = np.vstack((xa, ya)).T
+        ax2.plot(xa, rho_anal(XA), label='analytical, y = 0.5')
+
+        ax2.scatter(x[:,0], rho, s=1, alpha=0.4, c='k', label='all particles', marker=',')
+        selection = np.logical_and(x[:,1] > 0.45, x[:,1] < 0.55)
+        ax2.scatter(x[selection,0], rho[selection], s=2, alpha=0.8, c='r', label='0.45 < y < 0.55')
 
         ax2.legend()
         ax2.set_xlabel("x")
@@ -579,11 +670,16 @@ def IC_plot_current_situation(save, iteration, x, rho, rho_anal, ndim=2):
         rho_std = np.sqrt(rho2mean - rho_mean**2)
 
         r = 0.5 * (edges[:-1] + edges[1:])
-        ax3.errorbar(r, rho_mean, yerr=rho_std, label='IC')
+        ax3.errorbar(r, rho_mean, yerr=rho_std, label='average all ptcls', lw=1)
 
-        r = np.linspace(0, 1, 100)
-        ax3.plot(r, rho_anal(r), label='analytical')
-        ax3.scatter(x[:,1], rho, s=1, alpha=0.5, c='k')
+        ya = np.linspace(0, 1, 100)
+        xa = np.ones(ya.shape) * 0.5
+        XA = np.vstack((xa, ya)).T
+        ax3.plot(ya, rho_anal(XA), label='analytical x = 0.5')
+
+        ax3.scatter(x[:,1], rho, s=1, alpha=0.4, c='k', label='all particles', marker=',')
+        selection = np.logical_and(x[:,0] > 0.45, x[:,0] < 0.55)
+        ax3.scatter(x[selection,1], rho[selection], s=2, alpha=0.8, c='r', label='0.45 < y < 0.55')
 
         ax3.legend()
         ax3.set_xlabel("y")
