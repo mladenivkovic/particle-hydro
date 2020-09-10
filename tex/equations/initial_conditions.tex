@@ -2,3 +2,241 @@
 %==================================================================================
 \section{Generating Initial Conditions}\label{chap:IC}
 %==================================================================================
+
+
+
+\subsection{The Algorithm}
+
+
+Generating initial conditions for SPH-type of simulations is a bit more tricky than for grids.
+Grid cells have well defined volumes, and we can just distribute masses in the volumes to obtain densities, or simply follow the density profile to assign the cell center value.
+For SPH on the other hand, the densities are determined both through the particle positions and particle masses, both of which we need to set simultaneously to reproduce the density that we want to have.
+Even when keeping particle masses fixed, just shifting particle positions influences the density at the particle position, since the kernel weights naturally change too.
+
+An elegant way of generating initial conditions for SPH simulations is described by \cite{arthWVTICsSPHInitial2019}.
+The essential idea is to start with some initial particle configuration, then compute some sort of ``force'' on the particles that will displace them towards the model density, and re-iterate until the configuration has relaxed sufficiently.
+
+
+To start off, assuming the particle number that we want is set, we need to find some initial particle placements.
+Typical choices are uniform particle distributions, random distributions, or configurations obtained by rejection sampling the density that you want to reproduce.
+
+Secondly, the particle masses need to be determined.
+It is in our interest that the SPH particles have equal masses, hence we require the total mass in the simulation box as determined by the given density.
+To this end, the density field is integrated numerically, and the total mass divided equally amongst the particles.
+
+
+Every iteration step follows these steps:
+
+\begin{enumerate}
+
+	\item Compute ``model smoothing lengths''\footnote{The given formula in eq. \ref{eq:IC-model-smoothing-length} is not the one as given in \cite{arthWVTICsSPHInitial2019}, but it is the one used in their code, and it appears that it works well.} $h_i^m$:
+		\begin{align}
+			h_i^m = \left( \frac{N_{ngb}}{V_\nu} \frac{L_x L_y L_z}{\rho_m(\x_i) \oldsum_j^N 1/\rho_m(\x_i)}\right)^{1/\nu} \label{eq:IC-model-smoothing-length}
+		\end{align}
+		$V_\nu$ is the volume of the unit ``sphere'' in $\nu$ dimensions, namely
+		\begin{align*}
+			V_1 = 2, && V_2 = \pi, && V_3 = \frac{4}{3}\pi
+		\end{align*}
+		$L_x$, $L_y$, and $L_z$ are the box sizes in $x$, $y$, and $z$ direction, respectively, which I take to be unity.
+		Note that the sum in eq. \ref{eq:IC-model-smoothing-length} is the sum over all particles, not over a single particle's neighbours.
+		They are based only on the simulation parameters and the particle positions, and don't need to be computed like proper smoothing lengths in step section \ref{chap:smoothing_length}.
+		
+	\item Find the neighbours of each particle, and compute the ``displacement force'' on each particle.
+		The ``displacement force'' experienced by particle $i$ due to particle $j$ is given by
+		\begin{align}
+			\Delta r = C_{\Delta r} h_{ij} W(|\x_i - \x_j|, h_{ij}) \frac{\x_i - \x_j}{|\x_i - \x_j|} \label{eq:IC-delta-r}
+		\end{align}
+		Where $C_{\Delta r}$ is a negative constant discussed later, and 
+		\begin{align}
+			h_{ij} = \frac{h_i + h_j}{2}
+		\end{align}
+		and only contributions from all neighbours $j$ of particle $i$ are taken into account.
+		
+	\item Move particles with the computed $\Delta r$
+	
+	\item Optionally, displace some overdense particles close to underdense particles. 
+		Typically, this is not done every step, but after some set number of iteration steps have passed.
+		A fraction (which will decrease as the iteration count increases) of overdense particles is selected to be moved, if the following condition is satisfied:
+		\begin{equation}
+			r_{o} \in [0, 1] < \mathrm{erf}\left( \frac{\rho_i - \rho_m(\x_i)}{\rho_m(\x_i)}\right)
+		\end{equation}
+		where $r_{o}$ is a random number, $\rho_i$ is the density of some overdense particle $i$ and $\rho_m(\x_i)$ is the model density that we want our initial conditions to have at particle position $\x_i$.
+		Similarly, an underdense particle $j$ is chosen as a target if
+		\begin{equation}
+			r_{u} \in [0, 1] <  \frac{\rho_m(\x_i) - \rho_i}{\rho_m(\x_i)}
+		\end{equation} 
+		This ensures that particles with large density differences to the model density are more likely to be chosen to be moved and to be the target of the movement.
+		Once a target for some overdense particle is decided, the overdense particle is placed randomly around the target's coordinates with distance $< 0.3$ the kernel support radius.
+		
+\end{enumerate}
+
+
+
+A few thing remain to be discussed.
+Firstly, when can the iteration stop?
+When the initial conditions start to converge, the forces $\Delta r$ decrease.
+So the first condition for convergence is that an upper threshold for any displacement is never reached.
+If that is satisfied, we may consider the initial conditions to be converged when a large fraction (e.g. 99$\%$ or 99.9$\%$ or...) of the particles has a displacement lower than some ``convergence displacement threshold'', which typically should be lower than the upper threshold for any displacement.
+Finally, the iteration may stop if some maximal number of iterations has been completed.
+
+Secondly, what constant $C_{\Delta r}$ should we use in eq. \ref{eq:IC-delta-r}?
+It needs to be negative, but other than that, we're relatively free.
+In the code, it is defined in units of the mean interparticle distance
+\begin{align}
+	\overline{l} = 1 / N^{1/\nu}
+\end{align}
+
+How large the $\Delta r$ without the constant $C_{\Delta r}$ will be depends on multiple factors, like what density function you're trying to reproduce, how many neighbours you include in your kernel summation, etc.
+You should set it in a way such that the displacements at the start of the iteration are in the order of unity in units of $\overline{l}$.
+
+
+
+
+
+
+
+
+
+
+\subsection{User's Guide}
+
+The main function you will be calling is in \mbox{\texttt{particle$\_$hydro$\_$IC.py}}:
+
+
+
+
+\begin{lstlisting}
+generate_IC_for_given_density(rho_anal, nx, ndim, eta, x=None, 
+		m=None, kernel='cubic spline', periodic=True)
+		
+Parameters:
+
+	rho_anal:   function rho_anal(x). Should return a numpy 
+		array of the analytical function rho(x) for 
+		given coordinates x, where x is also a numpy 
+		array.
+	nx:         How many particles you want along each 
+		dimension. Total number of particles will be 
+		nx^ndim
+	ndim:       How many dimensions we're working with
+	eta:        "resolution", that defines number of 
+		neighbours
+	x:          Initial guess for coordinates of particles. 
+		If none, an initial guess will be generated
+		by rejection sampling rho_anal.
+		Should be numpy array of shape 
+		(nx^ndim, ndim) or None.
+	m:          Numpy array of particle masses. If None, an 
+		array will be created such that the total mass 
+		in the simulation box given the analytical 
+		density is reproduced, and all particles will
+		have equal masses.
+	kernel:     which kernel to use
+	periodic:   Whether we're having periodic boundary 
+		conditions or not.
+
+    
+returns:
+	x:      numpy array of particle positions
+	m:      numpy array of particle masses.
+	rho:    numpy array of particle densities
+	h:      numpy array of particle smoothing lengths
+
+
+\end{lstlisting}
+
+
+If you have a good guess for particle masses and initial positions, pass it on to the function, otherwise it'll create good guesses for you.
+There are also already implemented functions to give you either uniformly distributed particle configurations:
+\begin{lstlisting}
+IC_uniform_coordinates(nx, ndim = 2, periodic = True)
+\end{lstlisting}
+or uniform coordinates that have been randomly displaced:
+\begin{lstlisting}
+IC_perturbed_coordinates(nx, ndim = 2, periodic = True)
+\end{lstlisting}
+The parameters have the same meaning as above.
+
+
+
+The iteration parameters are stored as global variables, and can be changed by calling
+\begin{lstlisting}
+IC_generation_set_params(
+	iter_max                    = IC_ITER_MAX,
+	convergence_threshold       = IC_CONVERGENCE_THRESHOLD,
+	tolerance_part              = IC_TOLERANCE_PART,
+	displacement_threshold      = IC_DISPLACEMENT_THRESHOLD,
+	redistribute_at_iteration   = IC_REDISTRIBUTE_AT_ITERATION,
+	delta_init                  = IC_DELTA_INIT,
+	delta_reduction_factor      = IC_DELTA_REDUCTION_FACTOR,
+	delta_min                   = IC_DELTA_MIN,
+	redistribute_fraction       = IC_REDISTRIBUTE_FRACTION,
+	no_redistribution_after     = IC_NO_REDISTRIBUTION_AFTER,
+	plot_at_redistribution      = IC_PLOT_AT_REDISTRIBUTION
+	)
+\end{lstlisting}
+
+The parameters in all caps and with the \texttt{IC$\_$} prefix are the default values (and differ from the function parameters names only by being in all caps and having the prefix \texttt{IC$\_$}). 
+
+Their meaning is:
+
+% \usepackage{array} is required
+%\begin{tabular}{>{\raggedright\arraybackslash}p{2cm}>{\raggedright\arraybackslash}p{5cm}>{\raggedright\arraybackslash}p{3cm}>{\raggedright\arraybackslash}p{8cm}}
+\begin{tabular}{p{1.2cm} p{7cm} p{1.2cm} p{4cm}}
+\hline 
+\textbf{type} & \textbf{name} & \textbf{default}  &  \\ 
+\hline 
+int & \verb|IC_ITER_MAX| & 2000 & \\[.5em]
+	& \multicolumn{3}{p{12.2cm}}{max numbers of iterations for generating IC conditions }\\
+\hline 
+float & \verb|IC_CONVERGENCE_THRESHOLD| & 1e-3 & \\ [.5em]
+	& \multicolumn{3}{p{12.2cm}}{
+		if enough particles are displaced by distance below \texttt{IC$\_$CONVERGENCE$\_$THRESHOLD} $*$ mean interparticle distance, stop iterating. 
+		Enough particles is defined as less than \texttt{IC$\_$TOLERANCE$\_$PART} particles being \textbf{not} converged.
+		} \\ 
+\hline 
+float & \verb|IC_TOLERANCE_PART| & 0.01 & \\ [.5em]
+	& \multicolumn{3}{p{12.2cm}}{
+		tolerance for not converged particle fraction: this fraction of particles can be displaced with distances $>$ \texttt{IC$\_$CONVERGENCE$\_$THRESHOLD} 
+		}\\ 
+\hline 
+float & \verb|IC_DISPLACEMENT_THRESHOLD| & 1e-2 & \\ [.5em]
+	& \multicolumn{3}{p{12.2cm}}{
+		iteration halt criterion: While any particle is displaced by a distance $>$ \texttt{IC$\_$DISPLACEMENT$\_$THRESHOLD} $*$ mean interparticle distance, keep iterating.
+		} \\ 
+\hline 
+float & \verb|IC_DELTA_INIT| & 0.1 & \\[.5em] 
+	& \multicolumn{3}{p{12.2cm}}{
+		Initial normalisation constant for particle displacement in units of mean interparticle distance.
+		} \\ 
+\hline 
+float & \verb|IC_DELTA_MIN| & 1e-4 & \\ [.5em]
+	& \multicolumn{3}{p{12.2cm}}{
+		Minimal (=lower treshold) normalisation constant for particle displacement in units of mean interparticle distance.
+		} \\ 
+\hline 
+float & \verb|IC_DELTA_REDUCTION_FACTOR| & 0.97 & \\ [.5em]
+	& \multicolumn{3}{p{12.2cm}}{
+		Reduce normalisation constant for particle displacement by this factor every iteration to force convergence after a while.
+		}\\ 
+\hline 
+int & \verb|IC_REDISTRIBUTE_AT_ITERATION| & 10 & \\ [.5em]
+	& \multicolumn{3}{p{12.2cm}}{
+		Redistribute a handful of particles every \texttt{IC$\_$REDISTRIBUTE$\_$AT$\_$ITERATION}-th iteration. 
+		}\\ 
+\hline 
+float & \verb|IC_REDISTRIBUTE_FRACTION| & 0.01 & \\[.5em] 
+	& \multicolumn{3}{p{12.2cm}}{
+		fraction of particles to redistribute when doing so.  
+		}\\ 
+\hline 
+int & \texttt{IC$\_$NO$\_$REDISTRIBUTION$\_$AFTER} & 200 & \\[.5em] 
+	& \multicolumn{3}{p{12.2cm}}{
+		Don't redistribute particles after this iteration number.
+		} \\ 
+\hline 
+boolean & \verb|IC_PLOT_AT_REDISTRIBUTION| & True & \\ [.5em]
+	& \multicolumn{3}{p{12.2cm}}{
+		Create and store a plot of the current particle configuration and density before redistributing particles?
+		} \\
+\end{tabular} 

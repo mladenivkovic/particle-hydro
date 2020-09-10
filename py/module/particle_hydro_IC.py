@@ -319,6 +319,9 @@ def generate_IC_for_given_density(rho_anal, nx, ndim, eta, x=None, m=None, kerne
         # get analytical density at particle positions
         rhoA = rho_anal(x)
 
+        # reset delta_r
+        delta_r[:] = 0
+
         # re-distribute particles?
         if iteration % IC_REDISTRIBUTE_AT_ITERATION == 0:
 
@@ -332,9 +335,9 @@ def generate_IC_for_given_density(rho_anal, nx, ndim, eta, x=None, m=None, kerne
                 IC_plot_current_situation(True, iteration, x, rho, rho_anal, ndim=ndim)
             
             # re-destribute a handful of particles
-            if IC_NO_REDISTRIBUTION_AFTER >= iteration:
-                x = redistribute_particles(x, h, rho, rhoA, iteration, 
-                            kernel=kernel, ndim=ndim, periodic=periodic)
+            #  if IC_NO_REDISTRIBUTION_AFTER >= iteration:
+            #      x = redistribute_particles(x, h, rho, rhoA, iteration,
+            #                  kernel=kernel, ndim=ndim, periodic=periodic)
 
 
         # compute MODEL smoothing lengths
@@ -413,11 +416,12 @@ def generate_IC_for_given_density(rho_anal, nx, ndim, eta, x=None, m=None, kerne
         # check whether something's out of bounds
         if periodic:
             xmax = 2.
-            xmin = -1.
-            while xmax > 1. or xmin < 0.:
+            while xmax > 1.:
                 x[x>1.0] -= 1.0
-                x[x<0.] += 1.0
                 xmax = x.max()
+            xmin = -1.
+            while xmin < 0.:
+                x[x<0.] += 1.0
                 xmin = x.min()
         else:
             # leave it where it was
@@ -475,11 +479,9 @@ def redistribute_particles(x, h, rho, rhoA, iteration, kernel='cubic spline', nd
     Every few steps, manually displace underdense particles into areas of overdense particles
 
         x:          particle coordinates
-        m:          particle masses
         h:          particle smoothing lengths
         rho:        particle densities
         rhoA:       analytical (wanted) density at the particle positions
-        eta:        "resolution", that defines number of neighbours
         iteration:  current iteration of the particle displacement
         kernel:     which kernel to use
         ndim:       number of dimensions
@@ -494,7 +496,6 @@ def redistribute_particles(x, h, rho, rhoA, iteration, kernel='cubic spline', nd
 
     # decrease how many particles you move as number of iterations increases
     npart = x.shape[0]
-    f = IC_REDISTRIBUTE_FRACTION ** (iteration/IC_REDISTRIBUTE_FRACTION)
     to_move = int(npart * IC_REDISTRIBUTE_FRACTION * (1. - (iteration/IC_NO_REDISTRIBUTION_AFTER)**3))
     to_move = max(to_move, 0.)
 

@@ -6,3 +6,6 @@ paramfile.txt
 defines.mk
 riemann
 riemann-*
+
+*.txt
+swift

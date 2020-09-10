@@ -58,21 +58,13 @@ if [ $? -eq 0 ]; then # only continue if no error happened
     # $CMD paramfile.txt ../../IC/2D/corner-explosion-100.dat
     # $CMD paramfile.txt ../../IC/2D/center-explosion-100.dat
     # $CMD paramfile.txt ../../IC/1D/uniform-1D-100.dat
-    $CMD paramfile.txt ../../IC/2D/uniform-2D-100.dat
-
-
-
-    # RIEMANN
-    #-----------------
-    # icfile=../../IC/two-state/123problem.dat
-    # icfile=../../IC/two-state/left_vacuum.dat
-    # icfile=../../IC/two-state/right_vacuum.dat
-    # icfile=../../IC/two-state/vacuum_generating.dat
-    # icfile=../../IC/two-state/sod_test.dat
-    # icfile=../../IC/two-state/sod_test_modified.dat
-    # $CMD paramfile.txt $icfile | tee output.log
-    # python3 ../../py/plotting/plot_all_riemann_results.py *-0001.out $icfile
-    # python3 ../../py/plotting/plot_riemann_result.py *-0001.out $icfile
+    # $CMD paramfile.txt ../../IC/2D/uniform-2D-100.dat
+    # $CMD paramfile.txt ./arbitrary-1D.dat
+    # $CMD paramfile.txt ./arbitrary-2D.dat
+    # $CMD paramfile.txt ./uniform-2D.dat
+    $CMD paramfile.txt ./uniform-2D-2500.dat
+    # $CMD paramfile.txt ./random-uniform-2D-10000.dat
+    # $CMD paramfile.txt ./random-uniform-1D-100.dat
 
 
 
@@ -81,7 +73,7 @@ if [ $? -eq 0 ]; then # only continue if no error happened
     #----------------------
 
     # python3 ../../py/plotting/plot_density.py *0001.out
-    python3 ../../py/plotting/plot_result.py *0001.out
+    # python3 ../../py/plotting/plot_result.py *0001.out
     # python3 ../../py/plotting/plot_all_results_individually.py *.out
     # python3 ../../py/plotting/plot_all_density.py *.out
     # python3 ../../py/plotting/plot_all_density_individually.py *.out
