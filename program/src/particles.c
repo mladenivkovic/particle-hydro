@@ -3,13 +3,12 @@
 /* Written by Mladen Ivkovic, JUN 2020
  * mladen.ivkovic@hotmail.com           */
 
-
+#include "particles.h"
 #include "cell.h"
 #include "defines.h"
 #include "gas.h"
 #include "kernel.h"
 #include "params.h"
-#include "particles.h"
 #include "sort.h"
 #include "utils.h"
 
@@ -18,37 +17,30 @@
 #include <stdlib.h>
 #include <string.h>
 
-
-
 extern params pars;
-extern part* particles;
-extern cell* grid;
+extern part *particles;
+extern cell *grid;
 
-
-void init_part_array(){
+void init_part_array() {
   /* --------------------------------------
    * Initialize particle array
    * -------------------------------------- */
 
   log_extra("Initializing particle array");
 
-  if (pars.npart == 0){
+  if (pars.npart == 0) {
     throw_error("Can't allocate space for particle array: Have npart = 0");
   }
 
   particles = malloc(pars.npart * sizeof(part));
 
-  for (int p = 0; p < pars.npart; p++){
+  for (int p = 0; p < pars.npart; p++) {
     init_part(&particles[p]);
     particles[p].id = p + 1;
   }
 }
 
-
-
-
-
-void init_part(part* p){
+void init_part(part *p) {
   /* ----------------------------------------
    * Reset all particle values for particle p
    * DOES NOT RESET PARTICLE ID
@@ -69,54 +61,46 @@ void init_part(part* p){
   p->r = NULL;
 }
 
-
-
-
-void free_part_arrays(){
+void free_part_arrays() {
   /*----------------------------------
    * Deallocate arrays that are stored
    * in particle structs
    * --------------------------------- */
 
-  for (int i = 0; i < pars.npart; i++){
+  for (int i = 0; i < pars.npart; i++) {
     free(particles[i].neigh_iact);
     free(particles[i].r);
   }
 }
 
-
-
-
-
-
-
-void part_get_smoothing_lengths(){
+void part_get_smoothing_lengths() {
   /* -------------------------------------------------
    * Determine the smoothing length and the neighbours
    * to interact with for all particles
    *-------------------------------------------------- */
 
-
-  /* Loop over all cells. Find neighbour cells for each cell, 
+  /* Loop over all cells. Find neighbour cells for each cell,
    * then build particle neighbour lists based on cell particle
    * lists */
 
   int neighs[9];  /* cell neighbour array */
   int nn;         /* number of cell neighbours */
   int npctot;     /* total number of particles in cells + neighbours */
-  int* allneighs; /* all neighbour candidates of particles in a cell */
-  float* r;       /* distances of all neighbour candidates of particles in a cell */
-  float* x;       /* x coordinate of all neighbour candidates of particles in a cell */
-  float* y;       /* y coordinate of all neighbour candidates of particles in a cell */
+  int *allneighs; /* all neighbour candidates of particles in a cell */
+  float *r; /* distances of all neighbour candidates of particles in a cell */
+  float
+      *x; /* x coordinate of all neighbour candidates of particles in a cell */
+  float
+      *y; /* y coordinate of all neighbour candidates of particles in a cell */
 
-  for (int c = 0; c < pars.ncelltot; c++){
+  for (int c = 0; c < pars.ncelltot; c++) {
     /* get neighbours */
     cell_get_neighbours(&grid[c], neighs, &nn);
 
     /* how many particles are we dealing with here? */
     npctot = 0;
-    for (int n = 0; n < nn; n++){
-      npctot += grid[neighs[n]].npic; 
+    for (int n = 0; n < nn; n++) {
+      npctot += grid[neighs[n]].npic;
     }
 
     /* allocate particle neighbour arrays */
@@ -125,12 +109,11 @@ void part_get_smoothing_lengths(){
     x = malloc(npctot * sizeof(float));
     y = malloc(npctot * sizeof(float));
 
-  
     /* fill up arrays */
     int f = 0;
-    for (int n = 0; n < nn; n++){
+    for (int n = 0; n < nn; n++) {
       cell C = grid[neighs[n]];
-      for (int np = 0; np < C.npic; np++){
+      for (int np = 0; np < C.npic; np++) {
         allneighs[f] = C.cellparts[np];
         x[f] = particles[allneighs[f]].x[0];
         y[f] = particles[allneighs[f]].x[1];
@@ -138,26 +121,28 @@ void part_get_smoothing_lengths(){
       }
     }
 
-
     /* Now loop over all particles of this cell */
-    for (int np = 0; np < grid[c].npic; np++){
+    for (int np = 0; np < grid[c].npic; np++) {
       int pind = grid[c].cellparts[np];
       /* get particle distances w.r.t. this particle*/
-      for (int n = 0; n < npctot; n++){
+      for (int n = 0; n < npctot; n++) {
         float dx = x[n] - particles[pind].x[0];
         float dy = y[n] - particles[pind].x[1];
-        if (pars.boundary == 0){
+        if (pars.boundary == 0) {
           /* add periodicity corrections */
-          if (dx >  0.5 * BOXLEN) dx -= BOXLEN;
-          if (dx < -0.5 * BOXLEN) dx += BOXLEN;
-          if (dy >  0.5 * BOXLEN) dy -= BOXLEN;
-          if (dy < -0.5 * BOXLEN) dy += BOXLEN;
+          if (dx > 0.5 * BOXLEN)
+            dx -= BOXLEN;
+          if (dx < -0.5 * BOXLEN)
+            dx += BOXLEN;
+          if (dy > 0.5 * BOXLEN)
+            dy -= BOXLEN;
+          if (dy < -0.5 * BOXLEN)
+            dy += BOXLEN;
         }
-        r[n] = sqrtf(dx*dx + dy*dy);
+        r[n] = sqrtf(dx * dx + dy * dy);
       }
       part_compute_h(&particles[pind], r, allneighs, npctot);
     }
-
 
     /* free arrays for this cell */
     free(allneighs);
@@ -167,13 +152,7 @@ void part_get_smoothing_lengths(){
   }
 }
 
-
-
-
-
-
-
-void part_compute_h(part* p, float* r, int* neigh, int nneigh){
+void part_compute_h(part *p, float *r, int *neigh, int nneigh) {
   /* ----------------------------------------------------------------
    * Iteratively compute the smoothing length for given particle p.
    * r:      distances to all neighbouring particles
@@ -182,79 +161,80 @@ void part_compute_h(part* p, float* r, int* neigh, int nneigh){
    * ---------------------------------------------------------------- */
 
   /* create copies of neigh array so you can safely play with them */
-  int* neighcpy = malloc(nneigh * sizeof(int));
-  for (int i = 0; i < nneigh; i++){
+  int *neighcpy = malloc(nneigh * sizeof(int));
+  for (int i = 0; i < nneigh; i++) {
     neighcpy[i] = neigh[i];
   }
-
-
 
   /* sort neighcpy and r array by increasing r */
   quicksort_float_int_follower(r, neighcpy, nneigh);
 
-
   /* take initial guess for compact support radius for this particle */
-  float Hi = r[(int) (pars.nngb + 0.5)];
+  float Hi = r[(int)(pars.nngb + 0.5)];
 
   float eta_to_ndim = to_ndim_power(pars.eta);
 
   int niter = 0;
 
-  while (niter < ITER_MAX_H){
+  while (niter < ITER_MAX_H) {
     niter += 1;
 
     float hi = kernel_hfromH(Hi);
-    float ni = 0.;           /* number density of particle */
-    float dfdh_dWdrsum = 0.; /* kernel sum for df/dh that includes the dW/dr terms */
+    float ni = 0.; /* number density of particle */
+    float dfdh_dWdrsum =
+        0.; /* kernel sum for df/dh that includes the dW/dr terms */
 
     /* do neighbour loop */
-    for (int i = 0; r[i] <= Hi; i++){
+    for (int i = 0; r[i] <= Hi; i++) {
       float W = kernel_W(r[i], hi);
       float dWdr = kernel_dWdr(r[i], hi);
       ni += W;
-      dfdh_dWdrsum += ( NDIM * W + r[i] * dWdr );
-      if (i == nneigh - 1) break; /* safety measure */
+      dfdh_dWdrsum += (NDIM * W + r[i] * dWdr);
+      if (i == nneigh - 1)
+        break; /* safety measure */
     }
 
     /* now compute f and df/dh */
     float hi_to_ndim = to_ndim_power(hi);
     float hi_to_ndim_minus_one = hi_to_ndim / hi;
     float f = hi_to_ndim * ni - eta_to_ndim;
-    float dfdh = NDIM * hi_to_ndim_minus_one * ni - hi_to_ndim_minus_one * dfdh_dWdrsum;
+    float dfdh =
+        NDIM * hi_to_ndim_minus_one * ni - hi_to_ndim_minus_one * dfdh_dWdrsum;
 
     float Hinew = Hi - f / dfdh;
-    if (fabs(Hinew - Hi) < EPSILON_H * Hi){
+    if (fabs(Hinew - Hi) < EPSILON_H * Hi) {
       Hi = Hinew;
       break;
     } else {
       Hi = Hinew;
     }
-
   }
 
-  if (niter == ITER_MAX_H){
-    throw_error("reached max number of iterations for smoothing length of particle %d", p->id);
-  } 
+  if (niter == ITER_MAX_H) {
+    throw_error(
+        "reached max number of iterations for smoothing length of particle %d",
+        p->id);
+  }
 
   /* once you're done iterating, get density of the particle */
   float rhoi = 0.; /* density of this particle */
   float hi = kernel_hfromH(Hi);
 
   /* do neighbour loop */
-  for (int i = 0; r[i] <= Hi; i++){
+  for (int i = 0; r[i] <= Hi; i++) {
     part pj = particles[neighcpy[i]];
     rhoi += pj.m * kernel_W(r[i], hi);
-    if (i == nneigh - 1) break; /* safety measure */
+    if (i == nneigh - 1)
+      break; /* safety measure */
   }
-
 
   /* store results! */
   p->h = hi;
   p->prim.rho = rhoi;
-  
+
   /* now get neighbours array size */
   p->nneigh_iact = 0;
-  for (int i = 0; r[i] <= Hi; i++){
+  for (int i = 0; r[i] <= Hi; i++) {
     p->nneigh_iact += 1;
   }
 
@@ -263,38 +243,23 @@ void part_compute_h(part* p, float* r, int* neigh, int nneigh){
   p->r = malloc(p->nneigh_iact * sizeof(float));
 
   /* and fill them up */
-  for (int i = 0; i < p->nneigh_iact; i++){
+  for (int i = 0; i < p->nneigh_iact; i++) {
     p->neigh_iact[i] = neighcpy[i];
     p->r[i] = r[i];
   }
 
-
   free(neighcpy);
-
 }
 
-
-
-
-
-
-
-
-void part_print_all(void){
+void part_print_all(void) {
   /* ------------------------------------------------
    * Print all particles by increasing particle index
    * ------------------------------------------------ */
 
-  part_print_range(0, pars.npart-1);
-
+  part_print_range(0, pars.npart - 1);
 }
 
-
-
-
-
-
-void part_print_range(int start, int stop){
+void part_print_range(int start, int stop) {
   /* -------------------------------------------------
    * Print particles with indices starting at start
    * and ending at stop, endpoint INCLUDED.
@@ -302,60 +267,50 @@ void part_print_range(int start, int stop){
    * stop must be > start
    * ------------------------------------------------- */
 
-  if (stop < start){
-    throw_error("In part_print_range: Can't have stop < start. Vals you gave me were %d, %d", start, stop);
+  if (stop < start) {
+    throw_error("In part_print_range: Can't have stop < start. Vals you gave "
+                "me were %d, %d",
+                start, stop);
   }
 
-
   part_print_header();
-  for (int i = start; i <= stop; i++){
-    if (i >= pars.npart){
-      throw_error("In part_print_range: Got particle index i=%d > npart=%d. start=%d, stop=%d", i,pars.npart, start, stop);
+  for (int i = start; i <= stop; i++) {
+    if (i >= pars.npart) {
+      throw_error("In part_print_range: Got particle index i=%d > npart=%d. "
+                  "start=%d, stop=%d",
+                  i, pars.npart, start, stop);
     }
     part p = particles[i];
     part_print_properties(&p);
   }
 }
 
-
-
-
-
-
-void part_print_properties(part* p){
+void part_print_properties(part *p) {
   /* ----------------------------------------------------
    * Print a single particle's properties
    * ---------------------------------------------------- */
 
-  printf("%5d %8.3f %8.3f %8.3f %8.3f %8.3f %8.3f %8.3f %8.3f\n",
-      p->id, p->x[0], p->x[1], p->m, p->prim.rho, p->prim.u[0], p->prim.u[1], p->prim.p, p->h);
+  printf("%5d %8.3f %8.3f %8.3f %8.3f %8.3f %8.3f %8.3f %8.3f\n", p->id,
+         p->x[0], p->x[1], p->m, p->prim.rho, p->prim.u[0], p->prim.u[1],
+         p->prim.p, p->h);
 }
 
-
-
-
-
-void part_print_header(void){
+void part_print_header(void) {
   /* ----------------------------------------
    * print a table-like header
    * ---------------------------------------- */
 
-  printf("%5s %8s %8s %8s %8s %8s %8s %8s %8s\n",
-      "ID", "x", "y", "m", "rho", "u", "v", "p", "h");
+  printf("%5s %8s %8s %8s %8s %8s %8s %8s %8s\n", "ID", "x", "y", "m", "rho",
+         "u", "v", "p", "h");
 }
 
-
-
-
-
-
-void part_write_smoothing_lengths(int step){
+void part_write_smoothing_lengths(int step) {
   /* ------------------------------------------
-   * Write the smoothing lengths of step step 
+   * Write the smoothing lengths of step step
    * to a file.
    * ------------------------------------------ */
 
-  char filename[MAX_FNAME_SIZE] = ""; 
+  char filename[MAX_FNAME_SIZE] = "";
   char snapnrstr[5] = "";
 
   strcpy(filename, "smoothing_lengths-");
@@ -367,7 +322,7 @@ void part_write_smoothing_lengths(int step){
 
   FILE *outfilep = fopen(filename, "w");
 
-  for (int i=0; i<pars.npart; i++){
+  for (int i = 0; i < pars.npart; i++) {
     part p = particles[i];
     fprintf(outfilep, "%6d  %12.6e\n", i, p.h);
   }

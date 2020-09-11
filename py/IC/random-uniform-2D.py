@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
-#---------------------------------------------------
+# ---------------------------------------------------
 # Create 2D uniform ICs. Assign random values to
 # physical quantities.
-# instead of npart, specify nx: How many particles 
+# instead of npart, specify nx: How many particles
 # in any direction you want to.
-#---------------------------------------------------
+# ---------------------------------------------------
 
 
 import numpy as np
@@ -15,7 +15,7 @@ from particle_hydro_IC import IC_uniform_coordinates
 
 nx = 20
 
-npart = nx*nx
+npart = nx * nx
 
 m = np.random.rand(npart)
 u = np.random.rand(npart, 2)

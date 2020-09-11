@@ -22,16 +22,10 @@
 #include "kernel/wendlandC6.h"
 #endif
 
-
-
 float kernel_W(float r, float h);
 float kernel_dWdr(float r, float h);
 
-
 float kernel_Hfromh(float h);
 float kernel_hfromH(float H);
-
-
-
 
 #endif

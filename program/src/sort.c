@@ -5,10 +5,9 @@
 
 #include "sort.h"
 
-
-void quicksort_float_int_follower(float* arr, int* follower, int len){
+void quicksort_float_int_follower(float *arr, int *follower, int len) {
   /* -----------------------------------------------------------
-   * Top level quicksort function. 
+   * Top level quicksort function.
    * Calls quicksort_float_int_recursive().
    * arr: array to be sorted.
    * follower: array of same length as arr. Will be sorted the
@@ -17,16 +16,11 @@ void quicksort_float_int_follower(float* arr, int* follower, int len){
    * len: length of arrays
    * ----------------------------------------------------------- */
 
-  quicksort_float_int_follower_recursive(arr, follower, 0, len-1);
+  quicksort_float_int_follower_recursive(arr, follower, 0, len - 1);
 }
 
-
-
-
-
-
-
-void quicksort_float_int_follower_recursive(float* arr, int* follower, int lo, int hi){
+void quicksort_float_int_follower_recursive(float *arr, int *follower, int lo,
+                                            int hi) {
   /* -----------------------------------------------------------
    * Recursive quicksort function.
    * arr: array to be sorted.
@@ -38,24 +32,24 @@ void quicksort_float_int_follower_recursive(float* arr, int* follower, int lo, i
    * hi:  higher index
    * ----------------------------------------------------------- */
 
-  if (lo < hi){
+  if (lo < hi) {
     /* pick a pivot */
-    float pivot = arr[(lo + hi)/2];
+    float pivot = arr[(lo + hi) / 2];
 
     /* partition array */
     int i = lo;
     int j = hi;
 
     /* loop until i >= j */
-    while (i <= j){
-      
+    while (i <= j) {
+
       /* loop until you find index i where value > pivot from the left*/
-      while (arr[i] < pivot){
+      while (arr[i] < pivot) {
         i += 1;
       }
 
       /* loop until you find index j where value < pivot from the right */
-      while (arr[j] > pivot){
+      while (arr[j] > pivot) {
         j -= 1;
       }
 
@@ -80,6 +74,5 @@ void quicksort_float_int_follower_recursive(float* arr, int* follower, int lo, i
     /* call recursively */
     quicksort_float_int_follower_recursive(arr, follower, lo, j);
     quicksort_float_int_follower_recursive(arr, follower, i, hi);
-
   }
 }

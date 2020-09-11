@@ -12,15 +12,12 @@
 #define KERNEL_NORM 1.500000
 #define KERNEL_Hoverh 1.936492
 
-
 #elif NDIM == 2
 
 // 9/pi
 #define KERNEL_NORM 2.864789
 #define KERNEL_Hoverh 2.171239
 
-
 #endif
-
 
 #endif

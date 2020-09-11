@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-#---------------------------------------------------
+# ---------------------------------------------------
 # Create 1D uniform ICs. Everything is identical.
-#---------------------------------------------------
+# ---------------------------------------------------
 
 
 import numpy as np
@@ -11,10 +11,9 @@ from particle_hydro_IC import IC_uniform_coordinates
 
 
 nx = 20
-m_all = 1.
-u_all = 0.
-p_all = 1.
-
+m_all = 1.0
+u_all = 0.0
+p_all = 1.0
 
 
 npart = nx

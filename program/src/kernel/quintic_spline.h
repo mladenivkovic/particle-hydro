@@ -12,15 +12,12 @@
 #define KERNEL_NORM 6.075000
 #define KERNEL_Hoverh 2.121321
 
-
 #elif NDIM == 2
 
 // 3^7 * 7 / (478 pi)
 #define KERNEL_NORM 10.194573
 #define KERNEL_Hoverh 2.158131
 
-
 #endif
-
 
 #endif

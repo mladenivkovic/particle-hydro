@@ -3,11 +3,8 @@
 /* Written by Mladen Ivkovic, JAN 2020
  * mladen.ivkovic@hotmail.com           */
 
-
-
 #ifndef DEFINES_H
 #define DEFINES_H
-
 
 /* -------------------------------------------------------------------
  * some behaviour options you are free to tinker with
@@ -17,29 +14,25 @@
  * Riemann solver */
 #define HLLC_USE_ADAPTIVE_SPEED_ESTIMATE
 
-
 /* Physical constants */
 
-#define GAMMA  (5./3.)
+#define GAMMA (5. / 3.)
 // #define GAMMA 1.4
 
 /* boxsize */
 #define BOXLEN 1.
 
-
-
-
-
-/* ---------------------------------------------------------------------------------- *
- * you shouldn't be modifying stuff below
- * this line unless you know what you're doing
- * ---------------------------------------------------------------------------------- */
+/* ----------------------------------------------------------------------------------
+ * * you shouldn't be modifying stuff below this line unless you know what
+ * you're doing
+ * ----------------------------------------------------------------------------------
+ */
 
 /* File related stuff */
 
-#define MAX_FNAME_SIZE 200    /* limit for file name size */
-#define MAX_LINE_SIZE 200     /* limit for line length in formatted file which is read in*/
-
+#define MAX_FNAME_SIZE 200 /* limit for file name size */
+#define MAX_LINE_SIZE                                                          \
+  200 /* limit for line length in formatted file which is read in*/
 
 /* Macro functions */
 
@@ -54,7 +47,6 @@
 /* max number of iterations to determine smoothing length */
 #define ITER_MAX_H 1000
 
-
 /* minimal timestep size */
 #define DT_MIN 1e-10
 
@@ -63,24 +55,17 @@
 #define SMALLU 0.
 #define SMALLP 0.
 
-
 /* assumption for number of particles per cell */
 #define PARTS_ARRAY_SIZE 100
 
-
 /* for grid building: require that every cell has at lest
- * CELL_MIN_PARTS_IN_NEIGHBOURHOOD_FACT * nngb particles 
+ * CELL_MIN_PARTS_IN_NEIGHBOURHOOD_FACT * nngb particles
  * within all the neighbours combined */
 #define CELL_MIN_PARTS_IN_NEIGHBOURHOOD_FACT 2.
 
-
-
-
-
-/* ---------------------------------------------------------------------------------- *
- * Nobody should be changing things below this line
+/* ----------------------------------------------------------------------------------
+ * * Nobody should be changing things below this line
  * ----------------------------------------------------------------------------------*/
-
 
 /* Compute gamma related constants */
 
@@ -92,9 +77,9 @@ static const float ONEOVERGAMMA = 1. / GAMMA;
 static const float GM1HALF = 0.5 * (GAMMA - 1.);
 static const float BETA = 0.5 * (GAMMA - 1.) / GAMMA;
 
-
 /* PI */
-#define PI 3.14159265 /* I know there are better ways of doing this. Sue me. */
+#define PI 3.14159265 /* I know there are better ways of doing this. Sue me.   \
+                       */
 
 /* define solvers as integers */
 #define SPH_DS 11
@@ -125,6 +110,5 @@ static const float BETA = 0.5 * (GAMMA - 1.) / GAMMA;
 /* define sources as integers */
 #define SRC_CONST 1
 #define SRC_RADIAL 2
-
 
 #endif

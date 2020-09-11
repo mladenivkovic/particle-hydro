@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 
-#-------------------------------------------------------
+# -------------------------------------------------------
 # Module that contains io-routines for the hydro outputs
 # and IC files.
-#-------------------------------------------------------
+# -------------------------------------------------------
 
 
 import numpy as np
-
-
 
 
 def write_ic(fname, ndim, x, m, u, p):
@@ -25,28 +23,30 @@ def write_ic(fname, ndim, x, m, u, p):
         Nothing
     """
 
-    f = open(fname, 'w')
+    f = open(fname, "w")
     npart = m.shape[0]
 
     f.write("ndim = {0:d}\n".format(ndim))
     f.write("npart = {0:d}\n".format(npart))
-    f.write("\n") # add newline
+    f.write("\n")  # add newline
 
     if ndim == 1:
         for i in range(npart):
-            f.write("{0:12.6f} {1:12.6f} {2:12.6f} {3:12.6f}\n".format(x[i], m[i], u[i], p[i]))
+            f.write(
+                "{0:12.6f} {1:12.6f} {2:12.6f} {3:12.6f}\n".format(
+                    x[i], m[i], u[i], p[i]
+                )
+            )
 
     elif ndim == 2:
         for i in range(npart):
-            f.write("{0:12.6f} {1:12.6f} {2:12.6f} {3:12.6f} {4:12.6f} {5:12.6f}\n".format(
-                x[i,0], x[i, 1], m[i], u[i,0], u[i, 1], p[i])
+            f.write(
+                "{0:12.6f} {1:12.6f} {2:12.6f} {3:12.6f} {4:12.6f} {5:12.6f}\n".format(
+                    x[i, 0], x[i, 1], m[i], u[i, 0], u[i, 1], p[i]
+                )
             )
 
     return
-
-
-
-
 
 
 def read_output(fname):
@@ -75,13 +75,14 @@ def read_output(fname):
     t = None
     step = None
 
-
     linecount = 0
     while True:
         # safety measure
         linecount += 1
         if linecount > 1000:
-            print("================ Got to linecount = 1000 without having found all metadata. Wtf? Exiting now.")
+            print(
+                "================ Got to linecount = 1000 without having found all metadata. Wtf? Exiting now."
+            )
             print("got npart:", npart)
             print("got ndim", ndim)
             print("got t:", t)
@@ -94,7 +95,7 @@ def read_output(fname):
             continue
 
         else:
-            if clean.strip().startswith("x"): # header name descriptions
+            if clean.strip().startswith("x"):  # header name descriptions
                 continue
             name, eq, value = clean.partition("=")
             nstr = name.strip()
@@ -109,28 +110,30 @@ def read_output(fname):
             else:
                 raise ValueError("Unknown name: '{0}'".format(name))
 
-        if npart is not None and ndim is not None and t is not None and step is not None:
+        if (
+            npart is not None
+            and ndim is not None
+            and t is not None
+            and step is not None
+        ):
             break
 
- 
     f.close()
 
     if ndim == 1:
-        x, m, rho, u, p, h = np.loadtxt(fname, dtype=np.float, unpack=True, skiprows=linecount)
+        x, m, rho, u, p, h = np.loadtxt(
+            fname, dtype=np.float, unpack=True, skiprows=linecount
+        )
 
     elif ndim == 2:
-        x, y, m, rho, ux, uy, p, h = np.loadtxt(fname, dtype=np.float, unpack=True, skiprows=linecount)
+        x, y, m, rho, ux, uy, p, h = np.loadtxt(
+            fname, dtype=np.float, unpack=True, skiprows=linecount
+        )
 
         x = np.stack((x, y), axis=1)
         u = np.stack((ux, uy), axis=1)
 
-
-
     return ndim, x, m, rho, u, p, h, t, step
-
-
-
-
 
 
 def read_ic(fname):
@@ -148,7 +151,6 @@ def read_ic(fname):
                     both ux and uy
         p:          numpy array for pressure
     """
-
 
     check_file_exists(fname)
 
@@ -181,16 +183,16 @@ def read_ic(fname):
             else:
                 print("Unrecognized value name:", name)
 
-            got_header = (got_npart and got_ndim)
+            got_header = got_npart and got_ndim
             if got_header:
                 if ndim == 1:
-                    x = np.empty((npart), dtype=np.float) 
+                    x = np.empty((npart), dtype=np.float)
                     m = np.empty((npart), dtype=np.float)
                     u = np.empty((npart), dtype=np.float)
                     p = np.empty((npart), dtype=np.float)
 
                 elif ndim == 2:
-                    x = np.empty((npart, 2), dtype=np.float) 
+                    x = np.empty((npart, 2), dtype=np.float)
                     m = np.empty((npart), dtype=np.float)
                     u = np.empty((npart, 2), dtype=np.float)
                     p = np.empty((npart), dtype=np.float)
@@ -202,7 +204,7 @@ def read_ic(fname):
             if ndim == 1:
                 if len(vals) != 4:
                     print("Got wrong number of values in the line.")
-                    print("Line was: ", line, end='')
+                    print("Line was: ", line, end="")
                     print("Cleaned line is: '{0}'".format(clean))
                     print("I expect 4 values")
                     print("I got:", len(vals), vals)
@@ -217,7 +219,7 @@ def read_ic(fname):
             elif ndim == 2:
                 if len(vals) != 6:
                     print("Got wrong number of values in the line.")
-                    print("Line was: ", line, end='')
+                    print("Line was: ", line, end="")
                     print("Cleaned line is: '{0}'".format(clean))
                     print("I expect 6 values")
                     print("I got:", len(vals), vals)
@@ -231,14 +233,13 @@ def read_ic(fname):
                 p[i] = float(vals[5])
                 i += 1
 
-
-
-
     # checks
     if not got_header:
         print("I didn't find the data in the header that I require?")
-        if not got_ndim: print("Missing ndim")
-        if not got_npart: print("Missing npart")
+        if not got_ndim:
+            print("Missing ndim")
+        if not got_npart:
+            print("Missing npart")
         print("quitting")
         quit(1)
 
@@ -246,14 +247,7 @@ def read_ic(fname):
         print("Got too few values in x direction. Got i=", i, "should be", npart)
         quit(1)
 
-
-
-    return ndim, x, m , u, p
-
-
-
-
-
+    return ndim, x, m, u, p
 
 
 def remove_python_style_comments(line):
@@ -267,11 +261,6 @@ def remove_python_style_comments(line):
     return line
 
 
-
-
-
-
-
 def remove_C_style_comments(line):
     """
     Remove all comments (//, /* .. */) from the line
@@ -281,15 +270,11 @@ def remove_C_style_comments(line):
     clean = line
 
     for i, c in enumerate(line):
-        if c == '/':
+        if c == "/":
             clean = line[:i]
             break
 
     return clean
-
-
-
-
 
 
 def line_is_empty(line):
@@ -303,11 +288,6 @@ def line_is_empty(line):
         return False
 
 
-
-
-
-
-
 def check_file_exists(fname):
     """
     Check that file exists, throw error if not.
@@ -319,24 +299,15 @@ def check_file_exists(fname):
     return
 
 
-
-
-
-
-
 def remove_newline(line):
     """
     If newline character is the last character of the line, remove it.
     """
     if len(line) > 0:
-        if line[-1] == '\n' or line[-1] == '\r':
+        if line[-1] == "\n" or line[-1] == "\r":
             return (line[:-1]).strip()
 
     return line
-
-
-
-
 
 
 def split_columns(line, delim=" "):
@@ -349,7 +320,6 @@ def split_columns(line, delim=" "):
         splits: List of strings, representing columns
 
     """
-
 
     splits = []
 
@@ -371,7 +341,7 @@ def split_columns(line, delim=" "):
                 stop += 1
                 continue
 
-        else: # if line[stop] == delim
+        else:  # if line[stop] == delim
             splits.append(line[start:stop])
             while stop < len(line):
                 if line[stop] == delim:

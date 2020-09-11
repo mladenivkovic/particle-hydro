@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
-#----------------------------
+# ----------------------------
 # Various small utilities
-#----------------------------
+# ----------------------------
 
 
 from sys import argv
 import os
+
 
 def get_only_cmdlinearg():
     """
@@ -22,7 +23,6 @@ def get_only_cmdlinearg():
         return argv[1]
 
 
-
 def get_all_files_with_same_basename(fname):
     """
     Get a list of all files with the same basename as given file <fname>.
@@ -31,10 +31,10 @@ def get_all_files_with_same_basename(fname):
     """
 
     # first generate basename
-    basename = fname[:-9] # remove -0000.out
-    
+    basename = fname[:-9]  # remove -0000.out
+
     basedir = os.path.dirname(basename)
-    if basedir == '':
+    if basedir == "":
         basedir = os.getcwd()
 
     allfiles = os.listdir(basedir)
@@ -48,7 +48,6 @@ def get_all_files_with_same_basename(fname):
     filelist.sort()
 
     return filelist
-
 
 
 def label_to_kwargs(t, kwargs={}):
@@ -68,13 +67,14 @@ def label_to_kwargs(t, kwargs={}):
     elif isinstance(t, float):
         text = r"$t = ${0:.3f}".format(t)
     else:
-        raise ValueError("Got weird data type for label (t). t=", t, "type(t)=", type(t))
+        raise ValueError(
+            "Got weird data type for label (t). t=", t, "type(t)=", type(t)
+        )
 
     if text is not None:
         kwargs["label"] = text
 
     return kwargs
-
 
 
 def parse_arguments():
@@ -89,14 +89,33 @@ def parse_arguments():
         filelist:   list of files given
     """
 
-
     import argparse
 
     parser = argparse.ArgumentParser(description="Particle Hydro Plotting Script")
-    parser.add_argument('inputfiles', metavar='filenames', type=str, nargs='+', help="file(s) to plot")
-    parser.add_argument('-i', '--image',   dest='image',   action='store_true', help='make an image [default]. For 1D data, this creates a scatterplot.')
-    parser.add_argument('-p', '--profile', dest='profile', action='store_true', help='plot profiles. For 1D data, this has no effect.')
-    parser.add_argument('-s', '--scatter', dest='scatter', action='store_true', help='make a scatterplot. For 1D data, this has no effect.')
+    parser.add_argument(
+        "inputfiles", metavar="filenames", type=str, nargs="+", help="file(s) to plot"
+    )
+    parser.add_argument(
+        "-i",
+        "--image",
+        dest="image",
+        action="store_true",
+        help="make an image [default]. For 1D data, this creates a scatterplot.",
+    )
+    parser.add_argument(
+        "-p",
+        "--profile",
+        dest="profile",
+        action="store_true",
+        help="plot profiles. For 1D data, this has no effect.",
+    )
+    parser.add_argument(
+        "-s",
+        "--scatter",
+        dest="scatter",
+        action="store_true",
+        help="make a scatterplot. For 1D data, this has no effect.",
+    )
 
     args = parser.parse_args()
 
@@ -122,6 +141,5 @@ def parse_arguments():
     else:
         # none given. Use default
         case = "image"
-
 
     return case, args.inputfiles

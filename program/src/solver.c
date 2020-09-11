@@ -18,14 +18,8 @@ extern cell **grid;
 
 extern params pars;
 
-
-
-
-
-
-
-void solver_get_hydro_dt(float* dt){
-  /* ---------------------------------------------- 
+void solver_get_hydro_dt(float *dt) {
+  /* ----------------------------------------------
    * Computes the maximal allowable time step size
    * find max velocity present, then apply Courant
    * number to reduce it.
@@ -34,20 +28,12 @@ void solver_get_hydro_dt(float* dt){
   debugmessage("Called solver_get_hydro_dt", *dt);
 
   *dt = 1e-6;
-
 }
 
-
-
-
-
-
-
-void solver_advance_step_hydro(float* dt, int dimension){
+void solver_advance_step_hydro(float *dt, int dimension) {
   /* ---------------------------------------------
    * Integrate the equations for one time step
    * --------------------------------------------- */
 
   debugmessage("Called solver_advance_step with dt = %f", *dt);
-
 }
